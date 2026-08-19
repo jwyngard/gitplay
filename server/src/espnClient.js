@@ -47,7 +47,9 @@ const cache = {
 
 export async function getCollegeTeams() {
   if (cache.collegeTeams) return cache.collegeTeams;
-  const data = await getJson(`${SITE_BASE}/college-football/teams?limit=400`);
+  // ESPN reports ~760 college teams across FBS + FCS combined (e.g. FCS
+  // programs like North Dakota State) -- ask for enough to cover all of them.
+  const data = await getJson(`${SITE_BASE}/college-football/teams?limit=1000`);
   const teams = data.sports[0].leagues[0].teams.map((t) => ({
     id: t.team.id,
     name: t.team.displayName,
