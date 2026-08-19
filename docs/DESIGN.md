@@ -9,11 +9,19 @@ because alumni from that team are playing in them.
 The product idea has three steps:
 
 1. **Pick players**: a whole college team/season, individually chosen players
-   from a roster, or a saved cross-team list built up over time.
+   from a college roster, an NFL team's current roster browsed directly, or a
+   saved cross-team list built up over time.
 2. **Find them in the pros**: cross-reference those players against current
    NFL rosters.
 3. **Recommend games**: match their current NFL teams against this week's
    schedule and rank games by how many alumni are playing in each.
+
+The team search itself spans both levels: the picker searches college teams
+and NFL teams together (badged College/NFL), so a pro team can be browsed
+directly instead of only reached indirectly via a college alumnus. Picking
+an NFL team skips the season field entirely — there's only ever a "current"
+roster — and sources players from `GET /api/pro-roster` rather than the
+season-scoped college roster endpoint.
 
 ## 2. The idea that makes this possible
 
@@ -89,10 +97,16 @@ Everything ESPN-derived is cached in memory for the life of the server
 process (no TTL, no persistence — see [§6](#6-persistence-why-localstorage-not-a-backend-database)
 for why). Cache keys, all in `espnClient.js`:
 
-- `collegeTeams` — the full ~759-team list (see [§7](#7-a-truncation-bug-found-after-shipping) for a bug this had).
+- `collegeTeams` — the full ~759-team list. This list is paged from ESPN at
+  `limit=1000` deliberately: an earlier `limit=400` cut it off partway
+  through and silently dropped FCS programs like North Dakota State from
+  the picker (caught after a user reported a real alumni-heavy school
+  turning up empty — the roster/alumni logic was fine, the team just never
+  loaded into the search list to begin with).
 - `nflTeams` — the 32 NFL teams, id → `{name, abbreviation, logo}`.
-- `rosters` — keyed by `` `${teamId}:${year}` ``, one entry per team/season pulled.
-- `nflRosterIndex` — the athleteId → current-team map from [§4](#4-the-stale-team-field-bug-why-current-rosters-arent-trusted-at-face-value), built once and reused.
+- `rosters` — keyed by `` `${teamId}:${year}` ``, one entry per college team/season pulled.
+- `nflTeamRosters` — keyed by NFL team id, current roster with position/jersey/status. Backs both a direct team browse (`GET /api/pro-roster`, [§2](#2-the-idea-that-makes-this-possible)) and the cross-league index below, so browsing a team and resolving alumni never fetch the same team roster twice.
+- `nflRosterIndex` — the athleteId → current-team map from [§4](#4-the-stale-team-field-bug-why-current-rosters-arent-trusted-at-face-value), built from `nflTeamRosters` once and reused.
 
 ### Why roster fetches are slow the first time and fast after
 
@@ -107,11 +121,13 @@ team/year has been pulled, it's cached and instant on repeat.
 
 | Method & path | Purpose |
 |---|---|
-| `GET /api/college-teams` | Full team list for the search picker. |
-| `GET /api/roster?teamId=&year=` | Season roster (id, name, position, jersey). |
+| `GET /api/college-teams` | Full college team list for the search picker. |
+| `GET /api/pro-teams` | All 32 NFL teams, for the same picker. |
+| `GET /api/roster?teamId=&year=` | Season college roster (id, name, position, jersey). |
+| `GET /api/pro-roster?teamId=` | An NFL team's current roster, same shape as a college roster. |
 | `GET /api/week-games` | This week's NFL schedule. |
-| `GET /api/recommendations?teamId=&year=&playerIds=` | One team's roster (or a subset via `playerIds`) → alumni → games to watch. |
-| `POST /api/alumni-lookup` | Same recommendation logic, but for an arbitrary player list (id/name pairs) instead of one team's roster — powers the cross-team "My Roster" list. |
+| `GET /api/recommendations?teamId=&year=&playerIds=` | One college team's roster (or a subset via `playerIds`) → alumni → games to watch. |
+| `POST /api/alumni-lookup` | Same recommendation logic, but for an arbitrary player list (id/name pairs) instead of one college roster — powers the cross-team "My Roster" list, and also "Find games to watch" from a directly-browsed NFL roster (those players are already current, so this is really just "which of their games are this week"). |
 
 `/api/recommendations` and `/api/alumni-lookup` share one implementation,
 `buildRecommendations(players)`, so the matching/ranking logic (alumni →
