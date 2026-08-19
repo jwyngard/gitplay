@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: alumni-watch
+    runtime: node
+    plan: free
+    buildCommand: npm install --prefix server && npm install --prefix web && npm run build --prefix web
+    startCommand: npm start --prefix server
+    envVars:
+      - key: NODE_VERSION
+        value: 22.22.2

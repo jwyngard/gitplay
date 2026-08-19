@@ -1,10 +1,15 @@
 import express from "express";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   getCollegeTeams,
   getCollegeRoster,
   getAlumniForPlayers,
   getWeekGames,
 } from "./espnClient.js";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const WEB_DIST = path.join(__dirname, "../../web/dist");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -98,6 +103,15 @@ app.use((err, req, res, next) => {
   console.error(err);
   res.status(err.status && err.status < 500 ? err.status : 500).json({
     error: err.message || "Internal server error",
+  });
+});
+
+// Serve the built frontend (if present) so this single server can host
+// both the API and the app in production/deployment.
+app.use(express.static(WEB_DIST));
+app.get(/^(?!\/api).*/, (req, res, next) => {
+  res.sendFile(path.join(WEB_DIST, "index.html"), (err) => {
+    if (err) next(err);
   });
 });
 
