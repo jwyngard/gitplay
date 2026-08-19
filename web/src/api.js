@@ -20,3 +20,16 @@ export function getRecommendations(teamId, year, playerIds) {
   if (playerIds && playerIds.length) params.set("playerIds", playerIds.join(","));
   return getJson(`/api/recommendations?${params.toString()}`);
 }
+
+export async function getAlumniLookup(players) {
+  const res = await fetch("/api/alumni-lookup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ players }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `Request failed: ${res.status}`);
+  }
+  return res.json();
+}

@@ -14,10 +14,48 @@ const WEB_DIST = path.join(__dirname, "../../web/dist");
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+app.use(express.json());
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.path}`);
   next();
 });
+
+// Cross-references a list of players (id/name pairs -- doesn't matter what
+// college team/year they came from) against current NFL rosters and this
+// week's schedule, returning games worth watching.
+async function buildRecommendations(players) {
+  const alumni = await getAlumniForPlayers(players);
+  const { week, games } = await getWeekGames();
+
+  const alumniByTeamId = new Map();
+  for (const player of alumni) {
+    const teamId = player.nfl.team.id;
+    if (!alumniByTeamId.has(teamId)) alumniByTeamId.set(teamId, []);
+    alumniByTeamId.get(teamId).push(player);
+  }
+
+  const recommendations = games
+    .map((game) => {
+      const homeAlumni = alumniByTeamId.get(game.home.teamId) ?? [];
+      const awayAlumni = alumniByTeamId.get(game.away.teamId) ?? [];
+      return {
+        game,
+        homeAlumni,
+        awayAlumni,
+        totalAlumni: homeAlumni.length + awayAlumni.length,
+      };
+    })
+    .filter((g) => g.totalAlumni > 0)
+    .sort((a, b) => b.totalAlumni - a.totalAlumni);
+
+  return {
+    week,
+    consideredPlayers: players.length,
+    alumniCount: alumni.length,
+    recommendations,
+    allAlumni: alumni,
+  };
+}
 
 app.get("/api/college-teams", async (req, res, next) => {
   try {
@@ -62,38 +100,30 @@ app.get("/api/recommendations", async (req, res, next) => {
     const wantedIds = playerIds ? new Set(playerIds.split(",")) : null;
     const selected = wantedIds ? roster.filter((p) => wantedIds.has(p.id)) : roster;
 
-    const alumni = await getAlumniForPlayers(selected);
-    const { week, games } = await getWeekGames();
+    const result = await buildRecommendations(selected);
+    res.json({ ...result, rosterSize: roster.length });
+  } catch (err) {
+    next(err);
+  }
+});
 
-    const alumniByTeamId = new Map();
-    for (const player of alumni) {
-      const teamId = player.nfl.team.id;
-      if (!alumniByTeamId.has(teamId)) alumniByTeamId.set(teamId, []);
-      alumniByTeamId.get(teamId).push(player);
+// Same as /api/recommendations, but for an arbitrary set of players (e.g. a
+// saved list spanning multiple college teams/years) instead of one team's
+// roster. The frontend already knows each player's id/name/position from
+// when it originally fetched their college roster, so no lookup is needed
+// here -- just the NFL cross-reference.
+app.post("/api/alumni-lookup", async (req, res, next) => {
+  try {
+    const players = req.body?.players;
+    if (!Array.isArray(players) || players.length === 0) {
+      return res.status(400).json({ error: "players (non-empty array) is required" });
+    }
+    if (!players.every((p) => p && typeof p.id === "string" && typeof p.name === "string")) {
+      return res.status(400).json({ error: "each player needs an id and name" });
     }
 
-    const recommendations = games
-      .map((game) => {
-        const homeAlumni = alumniByTeamId.get(game.home.teamId) ?? [];
-        const awayAlumni = alumniByTeamId.get(game.away.teamId) ?? [];
-        return {
-          game,
-          homeAlumni,
-          awayAlumni,
-          totalAlumni: homeAlumni.length + awayAlumni.length,
-        };
-      })
-      .filter((g) => g.totalAlumni > 0)
-      .sort((a, b) => b.totalAlumni - a.totalAlumni);
-
-    res.json({
-      week,
-      rosterSize: roster.length,
-      consideredPlayers: selected.length,
-      alumniCount: alumni.length,
-      recommendations,
-      allAlumni: alumni,
-    });
+    const result = await buildRecommendations(players);
+    res.json({ ...result, rosterSize: players.length });
   } catch (err) {
     next(err);
   }
