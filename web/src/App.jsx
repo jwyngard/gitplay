@@ -1,0 +1,138 @@
+import { useEffect, useMemo, useState } from "react";
+import TeamPicker from "./components/TeamPicker.jsx";
+import RosterPanel from "./components/RosterPanel.jsx";
+import ResultsPanel from "./components/ResultsPanel.jsx";
+import { getCollegeTeams, getRoster, getRecommendations } from "./api.js";
+
+const CURRENT_YEAR = new Date().getFullYear();
+
+export default function App() {
+  const [teams, setTeams] = useState([]);
+  const [teamsError, setTeamsError] = useState(null);
+
+  const [selectedTeam, setSelectedTeam] = useState(null);
+  const [year, setYear] = useState(String(CURRENT_YEAR - 1));
+
+  const [roster, setRoster] = useState(null);
+  const [rosterLoading, setRosterLoading] = useState(false);
+  const [rosterError, setRosterError] = useState(null);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+
+  const [results, setResults] = useState(null);
+  const [resultsLoading, setResultsLoading] = useState(false);
+  const [resultsError, setResultsError] = useState(null);
+
+  useEffect(() => {
+    getCollegeTeams()
+      .then(setTeams)
+      .catch((err) => setTeamsError(err.message));
+  }, []);
+
+  const canLoadRoster = selectedTeam && /^\d{4}$/.test(year);
+
+  async function handleLoadRoster() {
+    setRosterLoading(true);
+    setRosterError(null);
+    setResults(null);
+    try {
+      const data = await getRoster(selectedTeam.id, year);
+      setRoster(data.players);
+      setSelectedIds(new Set(data.players.map((p) => p.id)));
+    } catch (err) {
+      setRosterError(err.message);
+      setRoster(null);
+    } finally {
+      setRosterLoading(false);
+    }
+  }
+
+  async function handleFindGames() {
+    setResultsLoading(true);
+    setResultsError(null);
+    try {
+      const isSubset = selectedIds.size < roster.length;
+      const data = await getRecommendations(
+        selectedTeam.id,
+        year,
+        isSubset ? Array.from(selectedIds) : null
+      );
+      setResults(data);
+    } catch (err) {
+      setResultsError(err.message);
+    } finally {
+      setResultsLoading(false);
+    }
+  }
+
+  function toggleId(id) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const noneSelected = roster && selectedIds.size === 0;
+
+  return (
+    <div className="app">
+      <header className="app__header">
+        <h1>Alumni Watch</h1>
+        <p>Pick a college team and season, then see which of this week's NFL games feature their alumni.</p>
+      </header>
+
+      {teamsError && <p className="error">Couldn't load teams: {teamsError}</p>}
+
+      <section className="app__controls">
+        <TeamPicker teams={teams} selectedTeam={selectedTeam} onSelect={setSelectedTeam} />
+
+        <div className="year-picker">
+          <label htmlFor="year-input">Season</label>
+          <input
+            id="year-input"
+            type="number"
+            min="2000"
+            max={CURRENT_YEAR}
+            value={year}
+            onChange={(e) => setYear(e.target.value)}
+          />
+        </div>
+
+        <button type="button" disabled={!canLoadRoster || rosterLoading} onClick={handleLoadRoster}>
+          {rosterLoading ? "Loading roster…" : "Load roster"}
+        </button>
+      </section>
+
+      {rosterError && <p className="error">Couldn't load roster: {rosterError}</p>}
+
+      {roster && (
+        <section className="app__roster">
+          <RosterPanel
+            players={roster}
+            selectedIds={selectedIds}
+            onToggle={toggleId}
+            onSelectAll={() => setSelectedIds(new Set(roster.map((p) => p.id)))}
+            onSelectNone={() => setSelectedIds(new Set())}
+          />
+          <button
+            type="button"
+            className="app__find-button"
+            disabled={noneSelected || resultsLoading}
+            onClick={handleFindGames}
+          >
+            {resultsLoading ? "Checking rosters…" : "Find games to watch"}
+          </button>
+        </section>
+      )}
+
+      {resultsError && <p className="error">Couldn't build recommendations: {resultsError}</p>}
+
+      {results && (
+        <section className="app__results">
+          <ResultsPanel data={results} />
+        </section>
+      )}
+    </div>
+  );
+}

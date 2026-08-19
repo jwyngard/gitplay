@@ -1,0 +1,297 @@
+:root {
+  color-scheme: light dark;
+  --bg: #0f1115;
+  --panel: #171a21;
+  --border: #2a2e37;
+  --text: #e8eaed;
+  --muted: #9aa0ab;
+  --accent: #4f8ef7;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.app {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 4rem;
+}
+
+.app__header h1 {
+  margin: 0 0 0.25rem;
+  font-size: 1.75rem;
+}
+
+.app__header p {
+  margin: 0 0 1.5rem;
+  color: var(--muted);
+}
+
+.app__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.25rem;
+  position: relative;
+}
+
+label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-bottom: 0.35rem;
+}
+
+input[type="text"],
+input[type="number"] {
+  background: #0d0f13;
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.95rem;
+  width: 100%;
+}
+
+.team-picker {
+  position: relative;
+  flex: 1 1 220px;
+}
+
+.team-picker__matches {
+  list-style: none;
+  margin: 0.25rem 0 0;
+  padding: 0.25rem;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #0d0f13;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  z-index: 10;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.team-picker__matches button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  color: var(--text);
+  text-align: left;
+  padding: 0.45rem 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.team-picker__matches button:hover {
+  background: #1c2028;
+}
+
+.year-picker {
+  flex: 0 0 110px;
+}
+
+button {
+  cursor: pointer;
+}
+
+.app__controls > button {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.55rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.app__controls > button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.error {
+  color: #f97066;
+  font-size: 0.9rem;
+}
+
+.app__roster {
+  margin-top: 1.5rem;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.25rem;
+}
+
+.roster-panel__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.roster-panel__header h3 {
+  margin: 0;
+}
+
+.roster-panel__actions button {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 6px;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8rem;
+  margin-left: 0.4rem;
+}
+
+.roster-panel__hint {
+  color: var(--muted);
+  font-size: 0.82rem;
+  margin: 0.5rem 0 0.75rem;
+}
+
+.roster-panel__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.35rem;
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.roster-panel__list label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--text);
+  margin: 0;
+  cursor: pointer;
+}
+
+.roster-panel__position {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.app__find-button {
+  margin-top: 1rem;
+  width: 100%;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.65rem 1rem;
+  font-weight: 600;
+}
+
+.app__find-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.app__results {
+  margin-top: 1.5rem;
+}
+
+.results-panel__summary {
+  color: var(--muted);
+  font-size: 0.88rem;
+  margin-bottom: 1rem;
+}
+
+.results-panel__empty {
+  color: var(--muted);
+}
+
+.results-panel__games {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.game-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem 1.1rem;
+}
+
+.game-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.game-card__matchup {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.game-card__count {
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.game-card__meta {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin: 0.15rem 0 0.75rem;
+}
+
+.game-card__sides {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.game-card__side strong {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-bottom: 0.25rem;
+}
+
+.game-card__side ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.88rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.game-card__pos {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.game-card__status {
+  color: #f0b429;
+  font-size: 0.78rem;
+}

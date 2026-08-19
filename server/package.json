@@ -1,0 +1,14 @@
+{
+  "name": "gitplay-server",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "cross-env NODE_USE_ENV_PROXY=1 node --watch src/index.js",
+    "start": "cross-env NODE_USE_ENV_PROXY=1 node src/index.js"
+  },
+  "dependencies": {
+    "cross-env": "^7.0.3",
+    "express": "^4.21.2"
+  }
+}
