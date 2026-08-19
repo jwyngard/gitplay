@@ -11,11 +11,11 @@ export default function TeamPicker({ teams, selectedTeam, onSelect }) {
 
   return (
     <div className="team-picker">
-      <label htmlFor="team-search">College team</label>
+      <label htmlFor="team-search">Team</label>
       <input
         id="team-search"
         type="text"
-        placeholder="Search teams, e.g. Clemson"
+        placeholder="Search college or NFL teams…"
         value={selectedTeam ? selectedTeam.name : query}
         onChange={(e) => {
           setQuery(e.target.value);
@@ -26,7 +26,7 @@ export default function TeamPicker({ teams, selectedTeam, onSelect }) {
       {matches.length > 0 && (
         <ul className="team-picker__matches">
           {matches.map((team) => (
-            <li key={team.id}>
+            <li key={`${team.kind}-${team.id}`}>
               <button
                 type="button"
                 onClick={() => {
@@ -35,7 +35,10 @@ export default function TeamPicker({ teams, selectedTeam, onSelect }) {
                 }}
               >
                 {team.logo && <img src={team.logo} alt="" width={20} height={20} />}
-                {team.name}
+                <span className="team-picker__name">{team.name}</span>
+                <span className={`team-picker__kind team-picker__kind--${team.kind}`}>
+                  {team.kind === "pro" ? "NFL" : "College"}
+                </span>
               </button>
             </li>
           ))}

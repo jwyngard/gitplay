@@ -42,6 +42,7 @@ const cache = {
   collegeTeams: null,
   nflTeams: null,
   rosters: new Map(), // `${teamId}:${year}` -> players[]
+  nflTeamRosters: new Map(), // nflTeamId -> players[] (current roster, with status)
   nflRosterIndex: null, // athleteId -> { team, position, jersey, status, statusName }
 };
 
@@ -112,6 +113,37 @@ export async function getCollegeRoster(teamId, year) {
   return filtered;
 }
 
+// Current roster for one NFL team, with position/jersey/status per player.
+// Cached per team so browsing a team directly and building the full
+// cross-league index (below) never re-fetch the same roster twice.
+async function getNflTeamRosterRaw(teamId) {
+  if (cache.nflTeamRosters.has(teamId)) return cache.nflTeamRosters.get(teamId);
+
+  const data = await getJson(`${SITE_BASE}/nfl/teams/${teamId}/roster`);
+  const players = (data.athletes ?? []).flatMap((group) =>
+    (group.items ?? []).map((athlete) => ({
+      id: athlete.id,
+      name: athlete.fullName ?? athlete.displayName,
+      position: athlete.position?.abbreviation ?? null,
+      jersey: athlete.jersey ?? null,
+      status: athlete.status?.type ?? "active",
+      statusName: athlete.status?.name ?? "Active",
+    }))
+  );
+
+  cache.nflTeamRosters.set(teamId, players);
+  return players;
+}
+
+// A team's current roster, shaped like a college roster (id/name/position/
+// jersey) for browsing/saving -- used when searching pro teams directly.
+export async function getNflTeamRoster(teamId) {
+  const players = await getNflTeamRosterRaw(teamId);
+  return players
+    .map(({ id, name, position, jersey }) => ({ id, name, position, jersey }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
 // Builds an index of every player currently on an NFL 53/90-man roster,
 // keyed by ESPN athlete id. This is the source of truth for "where do
 // they play now" -- an athlete's own `team` field can be stale (it keeps
@@ -124,17 +156,9 @@ export async function getNflRosterIndex() {
   const index = new Map();
 
   await mapWithConcurrency(Array.from(nflTeams.values()), 10, async (team) => {
-    const data = await getJson(`${SITE_BASE}/nfl/teams/${team.id}/roster`);
-    for (const group of data.athletes ?? []) {
-      for (const athlete of group.items ?? []) {
-        index.set(athlete.id, {
-          team,
-          position: athlete.position?.abbreviation ?? null,
-          jersey: athlete.jersey ?? null,
-          status: athlete.status?.type ?? "active",
-          statusName: athlete.status?.name ?? "Active",
-        });
-      }
+    const players = await getNflTeamRosterRaw(team.id);
+    for (const { id, position, jersey, status, statusName } of players) {
+      index.set(id, { team, position, jersey, status, statusName });
     }
   });
 

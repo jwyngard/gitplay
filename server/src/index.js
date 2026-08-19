@@ -4,6 +4,8 @@ import { fileURLToPath } from "node:url";
 import {
   getCollegeTeams,
   getCollegeRoster,
+  getNflTeams,
+  getNflTeamRoster,
   getAlumniForPlayers,
   getWeekGames,
 } from "./espnClient.js";
@@ -73,6 +75,30 @@ app.get("/api/roster", async (req, res, next) => {
     }
     const players = await getCollegeRoster(teamId, year);
     res.json({ teamId, year, players });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.get("/api/pro-teams", async (req, res, next) => {
+  try {
+    const teams = Array.from((await getNflTeams()).values()).sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
+    res.json(teams);
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.get("/api/pro-roster", async (req, res, next) => {
+  try {
+    const { teamId } = req.query;
+    if (!teamId) {
+      return res.status(400).json({ error: "teamId is required" });
+    }
+    const players = await getNflTeamRoster(teamId);
+    res.json({ teamId, players });
   } catch (err) {
     next(err);
   }

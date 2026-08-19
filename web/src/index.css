@@ -105,6 +105,29 @@ input[type="number"] {
   background: #1c2028;
 }
 
+.team-picker__name {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.team-picker__kind {
+  flex: 0 0 auto;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border-radius: 999px;
+  padding: 0.1rem 0.45rem;
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+.team-picker__kind--pro {
+  color: #4f8ef7;
+  border-color: #4f8ef7;
+}
+
 .year-picker {
   flex: 0 0 110px;
 }
