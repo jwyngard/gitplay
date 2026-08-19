@@ -7,10 +7,17 @@ Pick a college football team and season, then see which of this week's NFL
 games are worth watching because alumni from that roster are playing.
 
 - Pick a whole team/year, or narrow it down to specific players from that roster.
+- Filter a loaded roster by player name or position.
+- Save players across different team searches into "My Roster" (persisted in
+  your browser) so you can check it again later without re-searching.
 - Cross-references every player against current NFL team rosters (not just
   draft history, so trades and free-agent signings are reflected).
 - Matches alumni against this week's NFL schedule and ranks games by how many
   alumni are playing in each.
+
+See [`docs/DESIGN.md`](docs/DESIGN.md) for the full design doc — the data
+sources, why they're combined the way they are, and the trade-offs behind
+each decision.
 
 ### How it works
 
