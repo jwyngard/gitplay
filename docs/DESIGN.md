@@ -128,6 +128,30 @@ team/year has been pulled, it's cached and instant on repeat.
 | `GET /api/week-games` | This week's NFL schedule. |
 | `GET /api/recommendations?teamId=&year=&playerIds=` | One college team's roster (or a subset via `playerIds`) → alumni → games to watch. |
 | `POST /api/alumni-lookup` | Same recommendation logic, but for an arbitrary player list (id/name pairs) instead of one college roster — powers the cross-team "My Roster" list, and also "Find games to watch" from a directly-browsed NFL roster (those players are already current, so this is really just "which of their games are this week"). |
+| `GET /api/player/:id` | A "trading card" for one player — photo, bio, current team, college, draft info. Every player name in the UI links here. |
+
+### Player cards: another free ID-space coincidence
+
+`/api/player/:id` tries the NFL athlete record first, falling back to the
+college-football record for players who never turned pro (same 404-then-
+fallback shape as [§4](#4-the-stale-team-field-bug-why-current-rosters-arent-trusted-at-face-value)'s
+lesson: don't assume, check). The interesting part is resolving *who they
+played for*: an NFL athlete record's `college` field (alma mater) is a
+`$ref` to `.../colleges/{id}` — a different-looking endpoint from the team
+list endpoint this app already caches — but that id turns out to be the
+same numeric id as the corresponding entry in `collegeTeams`. So alma
+mater, and a college-only player's team, resolve against the cache already
+built for the search picker, with zero extra ESPN requests. Same pattern as
+the college-team/NFL-athlete shared ID space from [§2](#2-the-idea-that-makes-this-possible),
+just one level deeper.
+
+Current-team display on the card reuses `nflRosterIndex` when the player is
+actually on it (badged "Current"); when they're not (retired, free agent,
+never made a roster this index has seen), it falls back to the athlete's
+own `team` field — the same field [§4](#4-the-stale-team-field-bug-why-current-rosters-arent-trusted-at-face-value)
+found to go stale — but badges it "Last known" instead of hiding it or
+presenting it as authoritative. The bug in §4 was trusting that field
+silently; showing it honestly labeled is fine.
 
 `/api/recommendations` and `/api/alumni-lookup` share one implementation,
 `buildRecommendations(players)`, so the matching/ranking logic (alumni →
