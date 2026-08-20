@@ -32,8 +32,10 @@ async function mapWithConcurrency(items, concurrency, worker) {
   return results;
 }
 
+// Pulls the trailing numeric id off any ESPN $ref URL -- works for
+// .../athletes/{id}, .../teams/{id}, .../colleges/{id}, etc.
 function extractIdFromRef(ref) {
-  const match = ref.match(/\/(?:athletes|teams)\/(\d+)(?:\?|$)/);
+  const match = ref.match(/\/(\d+)(?:\?|$)/);
   return match ? match[1] : null;
 }
 
@@ -44,7 +46,17 @@ const cache = {
   rosters: new Map(), // `${teamId}:${year}` -> players[]
   nflTeamRosters: new Map(), // nflTeamId -> players[] (current roster, with status)
   nflRosterIndex: null, // athleteId -> { team, position, jersey, status, statusName }
+  collegeTeamsById: null, // Map, built lazily from collegeTeams
+  playerCards: new Map(), // athleteId -> card object | null (null = no profile found)
 };
+
+async function getCollegeTeamById(id) {
+  if (!cache.collegeTeamsById) {
+    const teams = await getCollegeTeams();
+    cache.collegeTeamsById = new Map(teams.map((t) => [t.id, t]));
+  }
+  return cache.collegeTeamsById.get(id) ?? null;
+}
 
 export async function getCollegeTeams() {
   if (cache.collegeTeams) return cache.collegeTeams;
@@ -173,6 +185,110 @@ export async function getAlumniForPlayers(players) {
   return players
     .filter((player) => index.has(player.id))
     .map((player) => ({ ...player, nfl: { id: player.id, name: player.name, ...index.get(player.id) } }));
+}
+
+// A "trading card" for one player: photo, bio, current team, college,
+// draft info. Tries the NFL athlete record first (present for anyone who's
+// ever had an NFL profile, even if they're no longer rostered), then falls
+// back to the college-football record for players who never turned pro.
+export async function getPlayerCard(id) {
+  if (cache.playerCards.has(id)) return cache.playerCards.get(id);
+
+  let detail = null;
+  let level = null;
+  try {
+    detail = await getJson(`${CORE_BASE}/nfl/athletes/${id}?lang=en&region=us`);
+    level = "nfl";
+  } catch (err) {
+    if (err.status !== 404) throw err;
+  }
+  if (!detail) {
+    try {
+      detail = await getJson(`${CORE_BASE}/college-football/athletes/${id}?lang=en&region=us`);
+      level = "college";
+    } catch (err) {
+      if (err.status !== 404) throw err;
+    }
+  }
+
+  if (!detail) {
+    cache.playerCards.set(id, null);
+    return null;
+  }
+
+  const nflTeams = await getNflTeams();
+
+  // Prefer the live roster index for "current team" -- an NFL athlete's
+  // own `team` field can be stale once they leave a roster (see
+  // getNflRosterIndex's comment). Fall back to the athlete's own field,
+  // clearly marked as not confirmed-current, rather than hiding it.
+  let team = null;
+  let teamIsCurrent = false;
+  if (level === "nfl") {
+    const rosterIndex = await getNflRosterIndex();
+    const live = rosterIndex.get(id);
+    if (live) {
+      team = { ...live.team, kind: "nfl" };
+      teamIsCurrent = true;
+    } else if (detail.team?.$ref) {
+      const teamId = extractIdFromRef(detail.team.$ref);
+      const t = teamId ? nflTeams.get(teamId) : null;
+      if (t) team = { ...t, kind: "nfl" };
+    }
+  } else if (detail.team?.$ref) {
+    const teamId = extractIdFromRef(detail.team.$ref);
+    const t = teamId ? await getCollegeTeamById(teamId) : null;
+    if (t) team = { ...t, kind: "college" };
+  }
+
+  let college = null;
+  if (detail.college?.$ref) {
+    const collegeId = extractIdFromRef(detail.college.$ref);
+    const t = collegeId ? await getCollegeTeamById(collegeId) : null;
+    if (t) college = { name: t.name, logo: t.logo };
+  }
+
+  let draft = null;
+  if (detail.draft) {
+    let draftTeam = null;
+    if (detail.draft.team?.$ref) {
+      const teamId = extractIdFromRef(detail.draft.team.$ref);
+      draftTeam = teamId ? nflTeams.get(teamId) ?? null : null;
+    }
+    draft = {
+      year: detail.draft.year ?? null,
+      round: detail.draft.round ?? null,
+      selection: detail.draft.selection ?? null,
+      displayText: detail.draft.displayText ?? null,
+      team: draftTeam,
+    };
+  }
+
+  const card = {
+    id,
+    name: detail.fullName ?? detail.displayName,
+    headshot: detail.headshot?.href ?? null,
+    position: detail.position?.abbreviation ?? null,
+    jersey: detail.jersey ?? null,
+    height: detail.displayHeight ?? null,
+    weight: detail.displayWeight ?? null,
+    age: detail.age ?? null,
+    birthPlace: detail.birthPlace
+      ? [detail.birthPlace.city, detail.birthPlace.state ?? detail.birthPlace.country]
+          .filter(Boolean)
+          .join(", ")
+      : null,
+    level,
+    team,
+    teamIsCurrent,
+    college,
+    draft,
+    experience: detail.experience?.years ?? null,
+    status: detail.status ? { name: detail.status.name, type: detail.status.type } : null,
+  };
+
+  cache.playerCards.set(id, card);
+  return card;
 }
 
 export async function getWeekGames() {

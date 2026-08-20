@@ -1,3 +1,5 @@
+import PlayerLink from "./PlayerLink.jsx";
+
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
   weekday: "short",
   month: "short",
@@ -14,7 +16,8 @@ function AlumniList({ label, players }) {
       <ul>
         {players.map((p) => (
           <li key={p.id}>
-            {p.name} <span className="game-card__pos">{p.nfl.position}</span>
+            <PlayerLink id={p.id} name={p.name} />{" "}
+            <span className="game-card__pos">{p.nfl.position}</span>
             {p.nfl.statusName !== "Active" && (
               <span className="game-card__status"> ({p.nfl.statusName})</span>
             )}

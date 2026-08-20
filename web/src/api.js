@@ -23,6 +23,10 @@ export function getProRoster(teamId) {
   return getJson(`/api/pro-roster?teamId=${teamId}`);
 }
 
+export function getPlayerCard(id) {
+  return getJson(`/api/player/${id}`);
+}
+
 export function getRecommendations(teamId, year, playerIds) {
   const params = new URLSearchParams({ teamId, year });
   if (playerIds && playerIds.length) params.set("playerIds", playerIds.join(","));

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import PlayerLink from "./PlayerLink.jsx";
 
 // Shared list UI for both a searched team's roster and the saved "My
 // Roster" list. `rowAction` renders whatever per-row button makes sense
@@ -68,18 +69,19 @@ export default function RosterList({
         <ul className="roster-panel__list">
           {filtered.map((p) => (
             <li key={p.id}>
-              <label>
+              <div className="roster-panel__row">
                 <input
                   type="checkbox"
                   checked={selectedIds.has(p.id)}
                   onChange={() => onToggle(p.id)}
+                  aria-label={`Select ${p.name}`}
                 />
-                <span className="roster-panel__name">{p.name}</span>
+                <PlayerLink id={p.id} name={p.name} className="roster-panel__name" />
                 {p.position && <span className="roster-panel__position">{p.position}</span>}
                 {showTeamBadge && p.teamName && (
                   <span className="roster-panel__badge">{p.teamName} · {p.year}</span>
                 )}
-              </label>
+              </div>
               {rowAction && <div className="roster-panel__row-action">{rowAction(p)}</div>}
             </li>
           ))}

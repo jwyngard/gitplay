@@ -8,6 +8,7 @@ import {
   getNflTeamRoster,
   getAlumniForPlayers,
   getWeekGames,
+  getPlayerCard,
 } from "./espnClient.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -75,6 +76,18 @@ app.get("/api/roster", async (req, res, next) => {
     }
     const players = await getCollegeRoster(teamId, year);
     res.json({ teamId, year, players });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.get("/api/player/:id", async (req, res, next) => {
+  try {
+    const card = await getPlayerCard(req.params.id);
+    if (!card) {
+      return res.status(404).json({ error: "No player profile found for this id" });
+    }
+    res.json(card);
   } catch (err) {
     next(err);
   }
