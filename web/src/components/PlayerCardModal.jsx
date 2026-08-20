@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getPlayerCard } from "../api.js";
+import { useSavedPlayersContext } from "../SavedPlayersContext.jsx";
 
 const FALLBACK_HEADSHOT =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23262a33'/%3E%3Ccircle cx='50' cy='38' r='18' fill='%233d4250'/%3E%3Cpath d='M20 90c0-19 13-32 30-32s30 13 30 32' fill='%233d4250'/%3E%3C/svg%3E";
@@ -18,6 +19,7 @@ export default function PlayerCardModal({ playerId, onClose }) {
   const [card, setCard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { isSaved, savePlayer } = useSavedPlayersContext();
 
   useEffect(() => {
     let cancelled = false;
@@ -76,6 +78,23 @@ export default function PlayerCardModal({ playerId, onClose }) {
                 )}
               </div>
             </div>
+
+            {card.team && (
+              <button
+                type="button"
+                className={`save-button player-card__save${isSaved(card.id) ? " save-button--saved" : ""}`}
+                disabled={isSaved(card.id)}
+                onClick={() =>
+                  savePlayer(
+                    { id: card.id, name: card.name, position: card.position },
+                    card.team,
+                    card.teamIsCurrent ? "Current" : card.level === "nfl" ? "Last known" : null
+                  )
+                }
+              >
+                {isSaved(card.id) ? "★ Saved to My Roster" : "☆ Save to My Roster"}
+              </button>
+            )}
 
             <div className="player-card__stats">
               <Stat label="Status">{card.status?.name}</Stat>

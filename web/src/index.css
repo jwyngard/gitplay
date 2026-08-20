@@ -535,6 +535,14 @@ button {
   border-color: var(--border);
 }
 
+.player-card__save {
+  width: 100%;
+  text-align: center;
+  padding: 0.5rem;
+  font-size: 0.85rem;
+  margin-bottom: 1.25rem;
+}
+
 .player-card__stats {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

@@ -10,7 +10,7 @@ import {
   getRecommendations,
   getAlumniLookup,
 } from "./api.js";
-import { useSavedPlayers } from "./useSavedPlayers.js";
+import { useSavedPlayersContext } from "./SavedPlayersContext.jsx";
 
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -28,7 +28,7 @@ export default function App() {
   const [rosterError, setRosterError] = useState(null);
   const [selectedIds, setSelectedIds] = useState(new Set());
 
-  const { savedPlayers, isSaved, savePlayer, removePlayer } = useSavedPlayers();
+  const { savedPlayers, isSaved, savePlayer, removePlayer } = useSavedPlayersContext();
   const [selectedSavedIds, setSelectedSavedIds] = useState(new Set());
 
   const [results, setResults] = useState(null);

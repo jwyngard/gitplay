@@ -79,7 +79,9 @@ export default function RosterList({
                 <PlayerLink id={p.id} name={p.name} className="roster-panel__name" />
                 {p.position && <span className="roster-panel__position">{p.position}</span>}
                 {showTeamBadge && p.teamName && (
-                  <span className="roster-panel__badge">{p.teamName} · {p.year}</span>
+                  <span className="roster-panel__badge">
+                    {p.teamName}{p.year ? ` · ${p.year}` : ""}
+                  </span>
                 )}
               </div>
               {rowAction && <div className="roster-panel__row-action">{rowAction(p)}</div>}
