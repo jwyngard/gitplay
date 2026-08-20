@@ -28,7 +28,7 @@ app.use((req, res, next) => {
 // week's schedule, returning games worth watching.
 async function buildRecommendations(players) {
   const alumni = await getAlumniForPlayers(players);
-  const { week, games } = await getWeekGames();
+  const { week, games, byeTeams } = await getWeekGames();
 
   const alumniByTeamId = new Map();
   for (const player of alumni) {
@@ -51,11 +51,17 @@ async function buildRecommendations(players) {
     .filter((g) => g.totalAlumni > 0)
     .sort((a, b) => b.totalAlumni - a.totalAlumni);
 
+  // Alumni whose NFL team isn't playing this week -- easy to otherwise
+  // read as "the tool missed them" rather than "their team is off."
+  const byeTeamIds = new Set(byeTeams.map((t) => t.id));
+  const byeAlumni = alumni.filter((p) => byeTeamIds.has(p.nfl.team.id));
+
   return {
     week,
     consideredPlayers: players.length,
     alumniCount: alumni.length,
     recommendations,
+    byeAlumni,
     allAlumni: alumni,
   };
 }

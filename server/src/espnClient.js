@@ -140,6 +140,11 @@ async function getNflTeamRosterRaw(teamId) {
       jersey: athlete.jersey ?? null,
       status: athlete.status?.type ?? "active",
       statusName: athlete.status?.name ?? "Active",
+      // Distinct from roster status above: a player can be on the active
+      // roster (status "Active") and still carry a Questionable/Out/IR
+      // injury designation. This field was already in the roster response
+      // and previously just discarded.
+      injuryStatus: athlete.injuries?.[0]?.status ?? null,
     }))
   );
 
@@ -152,7 +157,7 @@ async function getNflTeamRosterRaw(teamId) {
 export async function getNflTeamRoster(teamId) {
   const players = await getNflTeamRosterRaw(teamId);
   return players
-    .map(({ id, name, position, jersey }) => ({ id, name, position, jersey }))
+    .map(({ id, name, position, jersey, injuryStatus }) => ({ id, name, position, jersey, injuryStatus }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
@@ -169,8 +174,8 @@ export async function getNflRosterIndex() {
 
   await mapWithConcurrency(Array.from(nflTeams.values()), 10, async (team) => {
     const players = await getNflTeamRosterRaw(team.id);
-    for (const { id, position, jersey, status, statusName } of players) {
-      index.set(id, { team, position, jersey, status, statusName });
+    for (const { id, position, jersey, status, statusName, injuryStatus } of players) {
+      index.set(id, { team, position, jersey, status, statusName, injuryStatus });
     }
   });
 
@@ -224,12 +229,14 @@ export async function getPlayerCard(id) {
   // clearly marked as not confirmed-current, rather than hiding it.
   let team = null;
   let teamIsCurrent = false;
+  let injuryStatus = null;
   if (level === "nfl") {
     const rosterIndex = await getNflRosterIndex();
     const live = rosterIndex.get(id);
     if (live) {
       team = { ...live.team, kind: "nfl" };
       teamIsCurrent = true;
+      injuryStatus = live.injuryStatus ?? null;
     } else if (detail.team?.$ref) {
       const teamId = extractIdFromRef(detail.team.$ref);
       const t = teamId ? nflTeams.get(teamId) : null;
@@ -281,6 +288,7 @@ export async function getPlayerCard(id) {
     level,
     team,
     teamIsCurrent,
+    injuryStatus,
     college,
     draft,
     experience: detail.experience?.years ?? null,
@@ -308,5 +316,14 @@ export async function getWeekGames() {
       away: { teamId: away.team.id, name: away.team.displayName, abbreviation: away.team.abbreviation },
     };
   });
-  return { week: data.week ?? null, games };
+
+  // ESPN doesn't expose a "these teams are on bye" field -- derive it: the
+  // full 32-team league minus whoever is actually playing this week. Empty
+  // most of the regular season's early weeks (and always empty in
+  // preseason, since every team plays), non-empty once byes start.
+  const nflTeams = await getNflTeams();
+  const playingTeamIds = new Set(games.flatMap((g) => [g.home.teamId, g.away.teamId]));
+  const byeTeams = Array.from(nflTeams.values()).filter((t) => !playingTeamIds.has(t.id));
+
+  return { week: data.week ?? null, games, byeTeams };
 }

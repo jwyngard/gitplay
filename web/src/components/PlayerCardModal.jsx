@@ -98,6 +98,7 @@ export default function PlayerCardModal({ playerId, onClose }) {
 
             <div className="player-card__stats">
               <Stat label="Status">{card.status?.name}</Stat>
+              {card.injuryStatus && <Stat label="Injury">{card.injuryStatus}</Stat>}
               <Stat label="Experience">{card.experience != null ? `${card.experience} yr${card.experience === 1 ? "" : "s"}` : null}</Stat>
               <Stat label="Height">{card.height}</Stat>
               <Stat label="Weight">{card.weight}</Stat>

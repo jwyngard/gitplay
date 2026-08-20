@@ -52,23 +52,19 @@ Alumni Watch already does most of the hard part fantasy managers care about
 (is this player actually on a roster right now, and are they playing this
 week) — these would sharpen it for that audience specifically:
 
-- **Bye-week awareness.** Confirmed feasible, derived rather than fetched
-  directly: checked the current week's scoreboard and there's no explicit
-  "these teams are on bye" field, but there doesn't need to be — the app
-  already has the full 32-team list (`getNflTeams()`) and this week's
-  schedule (`getWeekGames()`), so bye teams are just the set difference
-  (all 32 minus whoever appears in a game this week). Right now, in
-  preseason, all 32 play every week so the difference is empty (verified:
-  16 games × 2 teams = all 32 teams accounted for) — this won't show
-  anything meaningful until the regular season's bye weeks start (usually
-  around week 5+), but the logic needs no new data source, just a
-  `getNflTeams() − teamsInThisWeeksGames()` computation in `buildRecommendations`
-  or a new small endpoint.
-- **Real injury designations (Q/D/O)** on both the player card and the game
-  results list. Confirmed feasible — see the injuries write-up above. This
-  is now the cheapest idea on this whole list to ship: the data already
-  flows through the server, it's just not attached to the response shape
-  yet.
+- **[Shipped] Bye-week awareness + real injury designations (Q/D/O).**
+  Built together as one round since both were "annotate what's already
+  fetched, no new endpoint" — bye teams are the set difference between the
+  full 32-team list and this week's schedule (`getWeekGames()` now returns
+  a `byeTeams` field); injury status was already sitting unused in the
+  roster fetch response and now flows through `nflRosterIndex` →
+  `allAlumni`/`recommendations` (game results list, red "(Questionable)"-
+  style tag) and `/api/player/:id` (a dedicated "Injury" row on the card).
+  A saved/considered player whose team is on a bye this week now shows up
+  in a "On a bye this week" callout instead of just silently vanishing
+  from the recommendations with no explanation. Verified live: Clelin
+  Ferrell (Clemson '18 alum, Miami Dolphins) correctly showed "Questionable"
+  in both the results list and his card.
 - **Position-grouped My Roster view** (QB/RB/WR/TE/K/DEF sections instead of
   one flat list). No new research needed — every saved player already
   carries a `position` field, so this is a pure frontend grouping change to

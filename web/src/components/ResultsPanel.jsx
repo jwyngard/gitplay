@@ -18,8 +18,12 @@ function AlumniList({ label, players }) {
           <li key={p.id}>
             <PlayerLink id={p.id} name={p.name} />{" "}
             <span className="game-card__pos">{p.nfl.position}</span>
-            {p.nfl.statusName !== "Active" && (
-              <span className="game-card__status"> ({p.nfl.statusName})</span>
+            {p.nfl.injuryStatus ? (
+              <span className="game-card__injury"> ({p.nfl.injuryStatus})</span>
+            ) : (
+              p.nfl.statusName !== "Active" && (
+                <span className="game-card__status"> ({p.nfl.statusName})</span>
+              )
             )}
           </li>
         ))}
@@ -29,7 +33,7 @@ function AlumniList({ label, players }) {
 }
 
 export default function ResultsPanel({ data }) {
-  const { week, rosterSize, consideredPlayers, alumniCount, recommendations } = data;
+  const { week, rosterSize, consideredPlayers, alumniCount, recommendations, byeAlumni } = data;
 
   return (
     <div className="results-panel">
@@ -39,6 +43,18 @@ export default function ResultsPanel({ data }) {
         {consideredPlayers !== rosterSize ? ` (of ${rosterSize} on roster)` : ""} are on
         current NFL rosters.
       </div>
+
+      {byeAlumni?.length > 0 && (
+        <div className="results-panel__bye">
+          <strong>On a bye this week:</strong>{" "}
+          {byeAlumni.map((p, i) => (
+            <span key={p.id}>
+              <PlayerLink id={p.id} name={p.name} /> ({p.nfl.team.abbreviation})
+              {i < byeAlumni.length - 1 ? ", " : ""}
+            </span>
+          ))}
+        </div>
+      )}
 
       {recommendations.length === 0 ? (
         <p className="results-panel__empty">
