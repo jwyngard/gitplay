@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -17,6 +18,12 @@ const WEB_DIST = path.join(__dirname, "../../web/dist");
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// The web build calls this server same-origin, so it never needed CORS --
+// the Capacitor app is a packaged WebView with no same-origin server at
+// all, and calls this API's absolute URL directly. Wide open is fine
+// here: no auth, no user data, nothing sensitive to protect against
+// cross-origin reads.
+app.use(cors());
 app.use(express.json());
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.path}`);

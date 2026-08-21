@@ -8,6 +8,7 @@
     "start": "cross-env NODE_USE_ENV_PROXY=1 node src/index.js"
   },
   "dependencies": {
+    "cors": "^2.8.6",
     "cross-env": "^7.0.3",
     "express": "^4.21.2"
   }

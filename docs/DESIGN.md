@@ -211,6 +211,30 @@ an explicit proxy (this repo's own dev sandbox included). It's a no-op
 anywhere a proxy isn't configured, so it's safe to leave on in every
 environment rather than special-casing it.
 
+### A second client: iOS via Capacitor
+
+The web build assumes it's served same-origin with the API (relative
+`/api/*` paths, no CORS needed) -- true for both local dev (Vite's proxy)
+and production (the Express server serving its own built frontend). A
+Capacitor-wrapped iOS build breaks that assumption: it's packaged static
+files running in a WebView with no same-origin server to call at all, so
+it needs the deployed API's absolute URL instead.
+
+Two small changes made both clients work off the same backend without
+duplicating any server logic:
+
+- `web/src/api.js` prefixes every request with `import.meta.env.VITE_API_BASE_URL`,
+  which is empty (→ relative paths) for the normal `npm run build` and set
+  to the deployed Render URL for `npm run build:capacitor` (via
+  `web/.env.capacitor`, a Vite mode-specific env file).
+- The server now sends permissive CORS headers (`app.use(cors())`), since
+  the Capacitor app's requests are genuinely cross-origin. Wide open is a
+  deliberate, not lazy, choice here -- there's no auth and no user data on
+  this server to protect against a cross-origin read.
+
+See `docs/IOS_APP.md` for the actual build/run steps (Mac + Xcode only,
+Apple's platform requirement, not something this repo can work around).
+
 ## 9. Known limitations
 
 - **No accounts / no cross-device sync** — see [§7](#7-persistence-why-localstorage-not-a-backend-database).

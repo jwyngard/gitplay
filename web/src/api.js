@@ -1,5 +1,11 @@
-async function getJson(url) {
-  const res = await fetch(url);
+// Empty for the normal web build (relative paths, same-origin server).
+// Set VITE_API_BASE_URL for the Capacitor build, which has no same-origin
+// server to call -- it's just packaged static files in a WebView, so it
+// needs the deployed API's absolute URL instead.
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
+
+async function getJson(path) {
+  const res = await fetch(`${API_BASE}${path}`);
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error || `Request failed: ${res.status}`);
@@ -34,7 +40,7 @@ export function getRecommendations(teamId, year, playerIds) {
 }
 
 export async function getAlumniLookup(players) {
-  const res = await fetch("/api/alumni-lookup", {
+  const res = await fetch(`${API_BASE}/api/alumni-lookup`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ players }),

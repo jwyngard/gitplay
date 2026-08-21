@@ -49,3 +49,9 @@ Then open http://localhost:5173.
 If your machine sits behind a proxy (`HTTPS_PROXY`/`https_proxy`), the server
 scripts already set `NODE_USE_ENV_PROXY=1` so Node's built-in `fetch` picks it
 up — Node ignores those env vars by default otherwise.
+
+### Running it as an iOS app
+
+See [`docs/IOS_APP.md`](docs/IOS_APP.md) — installs on your own iPhone via
+Xcode for free, no paid Apple Developer account required, using
+[Capacitor](https://capacitorjs.com/) to wrap this same frontend.
