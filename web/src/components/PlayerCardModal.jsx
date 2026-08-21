@@ -96,6 +96,20 @@ export default function PlayerCardModal({ playerId, onClose }) {
               </button>
             )}
 
+            {card.seasonStats && (
+              <div className="player-card__season">
+                <h3 className="player-card__season-title">{card.seasonStats.season} Season</h3>
+                <div className="player-card__season-row">
+                  {card.seasonStats.stats.map((s) => (
+                    <div key={s.label} className="player-card__season-stat">
+                      <span className="player-card__season-value">{s.value}</span>
+                      <span className="player-card__season-label">{s.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="player-card__stats">
               <Stat label="Status">{card.status?.name}</Stat>
               {card.injuryStatus && <Stat label="Injury">{card.injuryStatus}</Stat>}

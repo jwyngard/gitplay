@@ -594,6 +594,46 @@ button {
   margin-bottom: 1.25rem;
 }
 
+.player-card__season {
+  background: #0d0f13;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem 0.85rem;
+  margin-bottom: 1.25rem;
+}
+
+.player-card__season-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.player-card__season-row {
+  display: flex;
+  gap: 1.1rem;
+  flex-wrap: wrap;
+}
+
+.player-card__season-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.player-card__season-value {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.player-card__season-label {
+  font-size: 0.68rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
 .player-card__stats {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

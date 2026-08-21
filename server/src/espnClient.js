@@ -271,11 +271,14 @@ export async function getPlayerCard(id) {
     };
   }
 
+  const position = detail.position?.abbreviation ?? null;
+  const seasonStats = level === "nfl" ? await getSeasonStatLine(id, position) : null;
+
   const card = {
     id,
     name: detail.fullName ?? detail.displayName,
     headshot: detail.headshot?.href ?? null,
-    position: detail.position?.abbreviation ?? null,
+    position,
     jersey: detail.jersey ?? null,
     height: detail.displayHeight ?? null,
     weight: detail.displayWeight ?? null,
@@ -293,10 +296,132 @@ export async function getPlayerCard(id) {
     draft,
     experience: detail.experience?.years ?? null,
     status: detail.status ? { name: detail.status.name, type: detail.status.type } : null,
+    seasonStats,
   };
 
   cache.playerCards.set(id, card);
   return card;
+}
+
+// Which stat categories/fields make up a compact "stat line" per fantasy-
+// relevant position group. Field names confirmed live against real
+// season-scoped stat payloads (see docs/FEATURE_IDEAS.md).
+const STAT_FIELDS_BY_GROUP = {
+  QB: [
+    { category: "passing", field: "passingYards", label: "Pass Yds" },
+    { category: "passing", field: "passingTouchdowns", label: "Pass TD" },
+    { category: "passing", field: "interceptions", label: "INT" },
+    { category: "rushing", field: "rushingYards", label: "Rush Yds" },
+    { category: "rushing", field: "rushingTouchdowns", label: "Rush TD" },
+  ],
+  RB: [
+    { category: "rushing", field: "rushingYards", label: "Rush Yds" },
+    { category: "rushing", field: "rushingTouchdowns", label: "Rush TD" },
+    { category: "receiving", field: "receptions", label: "Rec" },
+    { category: "receiving", field: "receivingYards", label: "Rec Yds" },
+  ],
+  WR: [
+    { category: "receiving", field: "receptions", label: "Rec" },
+    { category: "receiving", field: "receivingYards", label: "Rec Yds" },
+    { category: "receiving", field: "receivingTouchdowns", label: "Rec TD" },
+  ],
+  TE: [
+    { category: "receiving", field: "receptions", label: "Rec" },
+    { category: "receiving", field: "receivingYards", label: "Rec Yds" },
+    { category: "receiving", field: "receivingTouchdowns", label: "Rec TD" },
+  ],
+  K: [
+    { category: "scoring", field: "fieldGoals", label: "FG" },
+    { category: "scoring", field: "kickExtraPointsMade", label: "XP" },
+    { category: "scoring", field: "totalPoints", label: "Pts" },
+  ],
+  DEF: [
+    { category: "defensive", field: "totalTackles", label: "Tkl" },
+    { category: "defensive", field: "sacks", label: "Sacks" },
+    { category: "defensive", field: "tacklesForLoss", label: "TFL" },
+    { category: "defensiveInterceptions", field: "interceptions", label: "INT" },
+  ],
+};
+
+function statGroupForPosition(position) {
+  if (position === "QB") return "QB";
+  if (["RB", "FB", "HB"].includes(position)) return "RB";
+  if (position === "WR") return "WR";
+  if (position === "TE") return "TE";
+  if (["K", "PK"].includes(position)) return "K";
+  if (
+    ["DE", "DT", "NT", "DL", "EDGE", "LB", "ILB", "OLB", "MLB", "CB", "S", "SS", "FS", "DB"].includes(
+      position
+    )
+  ) {
+    return "DEF";
+  }
+  return null;
+}
+
+// A compact season stat line for the player card. ESPN's unscoped
+// statistics endpoint (.../athletes/{id}/statistics) turned out to be
+// *career* totals, not current-season (verified live: it reported 64.5
+// career sacks for a real pass rusher -- not a plausible single-season
+// number) -- the genuinely season-scoped resource is reached indirectly
+// via `statisticslog`, which lists each season this player has stats for
+// and links to that season's totals. Uses the most recent logged season,
+// whatever that is (usually last year during the current preseason, since
+// this year's regular season hasn't produced stats yet).
+// Retries after a short backoff -- ESPN's core API has shown transient
+// (non-404) failures on this particular endpoint shape that clear up
+// within a request or two (observed live while building this: identical
+// requests moments apart went 403, 403, 200 with nothing else changed).
+// Worth a couple retries specifically here since getPlayerCard results are
+// cached for the life of the process -- a failure that isn't retried out
+// would otherwise poison the cache permanently for that player.
+async function getJsonWithRetry(url, attempts = 3) {
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      return await getJson(url);
+    } catch (err) {
+      if (err.status === 404 || attempt === attempts) throw err;
+      await new Promise((resolve) => setTimeout(resolve, attempt * 400));
+    }
+  }
+}
+
+// This is enhancement data, not core card data -- any failure here (the
+// retry above included) should just mean "no stat line," never break the
+// rest of the card.
+async function getSeasonStatLine(id, position) {
+  const group = statGroupForPosition(position);
+  const fields = group ? STAT_FIELDS_BY_GROUP[group] : null;
+  if (!fields) return null;
+
+  try {
+    const log = await getJsonWithRetry(`${CORE_BASE}/nfl/athletes/${id}/statisticslog?lang=en&region=us`);
+    const entry = log.entries?.[0];
+    const total = entry?.statistics?.find((s) => s.type === "total");
+    // ESPN's $ref links use plain http://, unlike every other URL this
+    // client builds itself (always https://) -- fetching a raw ref
+    // verbatim like this is the exception, not the rule, and the proxy
+    // this app has been developed behind rejects plain-HTTP requests
+    // outright (observed live: consistent 403s until this was upgraded).
+    const statsUrl = total?.statistics?.$ref?.replace(/^http:/, "https:");
+    if (!statsUrl) return null;
+
+    const season = entry.season?.$ref ? extractIdFromRef(entry.season.$ref) : null;
+    const statsDoc = await getJsonWithRetry(statsUrl);
+
+    const categories = new Map((statsDoc.splits?.categories ?? []).map((c) => [c.name, c]));
+    const stats = fields
+      .map(({ category, field, label }) => {
+        const stat = categories.get(category)?.stats?.find((s) => s.name === field);
+        return stat ? { label, value: stat.displayValue } : null;
+      })
+      .filter(Boolean);
+
+    return stats.length > 0 ? { season, stats } : null;
+  } catch (err) {
+    if (err.status !== 404) console.warn(`getSeasonStatLine(${id}) failed:`, err.message);
+    return null;
+  }
 }
 
 export async function getWeekGames() {
