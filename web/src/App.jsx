@@ -11,6 +11,7 @@ import {
   getAlumniLookup,
 } from "./api.js";
 import { useSavedPlayersContext } from "./SavedPlayersContext.jsx";
+import { useNavigation } from "./NavigationContext.jsx";
 
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -30,6 +31,8 @@ export default function App() {
 
   const { savedPlayers, isSaved, savePlayer, removePlayer } = useSavedPlayersContext();
   const [selectedSavedIds, setSelectedSavedIds] = useState(new Set());
+
+  const { pendingTeamSearch, clearPendingTeamSearch } = useNavigation();
 
   const [results, setResults] = useState(null);
   const [resultsLoading, setResultsLoading] = useState(false);
@@ -54,14 +57,19 @@ export default function App() {
   const isPro = selectedTeam?.kind === "pro";
   const canLoadRoster = selectedTeam && (isPro || /^\d{4}$/.test(year));
 
-  async function handleLoadRoster() {
+  // Takes an explicit team/year rather than reading component state, so it
+  // works both for the "Load roster" button (current state) and for a
+  // navigation request from the player card (a team/year that hasn't been
+  // set into state yet -- state updates aren't synchronous, so reading
+  // `selectedTeam`/`year` right after setting them would still see stale
+  // values).
+  async function loadRosterForTeam(team, yr) {
     setRosterLoading(true);
     setRosterError(null);
     setResults(null);
     try {
-      const data = isPro
-        ? await getProRoster(selectedTeam.id)
-        : await getRoster(selectedTeam.id, year);
+      const data =
+        team.kind === "pro" ? await getProRoster(team.id) : await getRoster(team.id, yr);
       setRoster(data.players);
       setSelectedIds(new Set(data.players.map((p) => p.id)));
     } catch (err) {
@@ -71,6 +79,25 @@ export default function App() {
       setRosterLoading(false);
     }
   }
+
+  function handleLoadRoster() {
+    return loadRosterForTeam(selectedTeam, year);
+  }
+
+  // A player-card "jump to this team" click lands here: switch to the
+  // search tab, select the team, and load its roster right away instead of
+  // just prefilling the fields.
+  useEffect(() => {
+    if (!pendingTeamSearch) return;
+    const { team, year: navYear } = pendingTeamSearch;
+    const resolvedYear = navYear ? String(navYear) : String(CURRENT_YEAR - 1);
+    setView("search");
+    setSelectedTeam(team);
+    setYear(resolvedYear);
+    loadRosterForTeam(team, resolvedYear);
+    clearPendingTeamSearch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingTeamSearch]);
 
   async function handleFindGames() {
     setResultsLoading(true);

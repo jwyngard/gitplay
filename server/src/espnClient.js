@@ -252,7 +252,7 @@ export async function getPlayerCard(id) {
   if (detail.college?.$ref) {
     const collegeId = extractIdFromRef(detail.college.$ref);
     const t = collegeId ? await getCollegeTeamById(collegeId) : null;
-    if (t) college = { name: t.name, logo: t.logo };
+    if (t) college = { id: t.id, name: t.name, logo: t.logo };
   }
 
   let draft = null;

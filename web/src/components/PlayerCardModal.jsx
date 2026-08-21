@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
 import { getPlayerCard } from "../api.js";
 import { useSavedPlayersContext } from "../SavedPlayersContext.jsx";
+import { useNavigation } from "../NavigationContext.jsx";
+
+// The card's `team.kind`/`college` come back as "nfl"/"college" from the
+// backend; the team picker elsewhere in the app tags NFL teams "pro"
+// instead -- translate at the one place that bridges the two.
+function toPickerTeam(team, kind) {
+  return { id: team.id, name: team.name, abbreviation: team.abbreviation, logo: team.logo, kind };
+}
 
 const FALLBACK_HEADSHOT =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23262a33'/%3E%3Ccircle cx='50' cy='38' r='18' fill='%233d4250'/%3E%3Cpath d='M20 90c0-19 13-32 30-32s30 13 30 32' fill='%233d4250'/%3E%3C/svg%3E";
@@ -20,6 +28,12 @@ export default function PlayerCardModal({ playerId, onClose }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { isSaved, savePlayer } = useSavedPlayersContext();
+  const { requestTeamSearch } = useNavigation();
+
+  function goToTeam(team, kind) {
+    requestTeamSearch(toPickerTeam(team, kind));
+    onClose();
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -66,7 +80,12 @@ export default function PlayerCardModal({ playerId, onClose }) {
                   {[card.position, card.jersey ? `#${card.jersey}` : null].filter(Boolean).join(" · ")}
                 </p>
                 {card.team && (
-                  <div className="player-card__team">
+                  <button
+                    type="button"
+                    className="player-card__team player-card__team-link"
+                    onClick={() => goToTeam(card.team, card.team.kind === "nfl" ? "pro" : "college")}
+                    title={`Search ${card.team.name}`}
+                  >
                     {card.team.logo && <img src={card.team.logo} alt="" width={20} height={20} />}
                     <span>{card.team.name}</span>
                     {card.team.kind === "nfl" && (
@@ -74,7 +93,7 @@ export default function PlayerCardModal({ playerId, onClose }) {
                         {card.teamIsCurrent ? "Current" : "Last known"}
                       </span>
                     )}
-                  </div>
+                  </button>
                 )}
               </div>
             </div>
@@ -118,7 +137,22 @@ export default function PlayerCardModal({ playerId, onClose }) {
               <Stat label="Weight">{card.weight}</Stat>
               <Stat label="Age">{card.age}</Stat>
               <Stat label="Born">{card.birthPlace}</Stat>
-              {card.college && <Stat label="College">{card.college.name}</Stat>}
+              {card.college && (
+                <div className="player-card__stat">
+                  <span className="player-card__stat-label">College</span>
+                  {card.college.id ? (
+                    <button
+                      type="button"
+                      className="player-card__stat-value player-card__stat-link"
+                      onClick={() => goToTeam(card.college, "college")}
+                    >
+                      {card.college.name}
+                    </button>
+                  ) : (
+                    <span className="player-card__stat-value">{card.college.name}</span>
+                  )}
+                </div>
+              )}
               {card.draft && (
                 <Stat label="Draft">
                   {card.draft.displayText}
