@@ -253,9 +253,8 @@ button {
 
 .roster-panel__list li {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
+  flex-direction: column;
+  gap: 0.2rem;
   padding: 0.4rem 0.15rem;
   border-bottom: 1px solid var(--border);
 }
@@ -269,8 +268,6 @@ button {
   align-items: center;
   gap: 0.4rem;
   font-size: 0.85rem;
-  flex: 1 1 auto;
-  min-width: 0;
 }
 
 .roster-panel__row input[type="checkbox"] {
@@ -281,12 +278,15 @@ button {
 .roster-panel__position {
   color: var(--muted);
   font-size: 0.75rem;
+  flex: 0 0 auto;
 }
 
 .roster-panel__name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .player-link {
@@ -305,18 +305,28 @@ button {
   text-decoration: underline;
 }
 
+.roster-panel__badge-row {
+  padding-left: 1.5rem;
+}
+
 .roster-panel__badge {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--muted);
   font-size: 0.72rem;
   background: #0d0f13;
   border: 1px solid var(--border);
   border-radius: 999px;
   padding: 0.1rem 0.5rem;
-  white-space: nowrap;
+  box-sizing: border-box;
 }
 
 .roster-panel__row-action {
   flex: 0 0 auto;
+  margin-left: auto;
 }
 
 .save-button,

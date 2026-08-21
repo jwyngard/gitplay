@@ -14,13 +14,15 @@ function PlayerRow({ p, selectedIds, onToggle, showTeamBadge, rowAction }) {
         />
         <PlayerLink id={p.id} name={p.name} className="roster-panel__name" />
         {p.position && <span className="roster-panel__position">{p.position}</span>}
-        {showTeamBadge && p.teamName && (
+        {rowAction && <div className="roster-panel__row-action">{rowAction(p)}</div>}
+      </div>
+      {showTeamBadge && p.teamName && (
+        <div className="roster-panel__badge-row">
           <span className="roster-panel__badge">
             {p.teamName}{p.year ? ` · ${p.year}` : ""}
           </span>
-        )}
-      </div>
-      {rowAction && <div className="roster-panel__row-action">{rowAction(p)}</div>}
+        </div>
+      )}
     </li>
   );
 }
