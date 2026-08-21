@@ -220,6 +220,37 @@ button {
   overflow-y: auto;
 }
 
+.roster-panel__groups {
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+.roster-panel__group + .roster-panel__group {
+  margin-top: 0.9rem;
+}
+
+.roster-panel__group .roster-panel__list {
+  max-height: none;
+  overflow-y: visible;
+}
+
+.roster-panel__group-label {
+  margin: 0 0 0.15rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.25rem;
+}
+
+.roster-panel__group-count {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
 .roster-panel__list li {
   display: flex;
   align-items: center;

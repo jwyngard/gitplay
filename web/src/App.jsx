@@ -232,6 +232,7 @@ export default function App() {
             onSelectAll={() => setSelectedSavedIds(new Set(savedPlayers.map((p) => p.id)))}
             onSelectNone={() => setSelectedSavedIds(new Set())}
             showTeamBadge
+            groupByPosition
             emptyMessage="Nothing saved yet. Search a team, then star players to add them here."
             rowAction={(p) => (
               <button type="button" className="remove-button" onClick={() => removePlayer(p.id)}>

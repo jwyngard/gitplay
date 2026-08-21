@@ -1,9 +1,36 @@
 import { useMemo, useState } from "react";
 import PlayerLink from "./PlayerLink.jsx";
+import { groupByFantasyPosition } from "../fantasyPositions.js";
+
+function PlayerRow({ p, selectedIds, onToggle, showTeamBadge, rowAction }) {
+  return (
+    <li>
+      <div className="roster-panel__row">
+        <input
+          type="checkbox"
+          checked={selectedIds.has(p.id)}
+          onChange={() => onToggle(p.id)}
+          aria-label={`Select ${p.name}`}
+        />
+        <PlayerLink id={p.id} name={p.name} className="roster-panel__name" />
+        {p.position && <span className="roster-panel__position">{p.position}</span>}
+        {showTeamBadge && p.teamName && (
+          <span className="roster-panel__badge">
+            {p.teamName}{p.year ? ` · ${p.year}` : ""}
+          </span>
+        )}
+      </div>
+      {rowAction && <div className="roster-panel__row-action">{rowAction(p)}</div>}
+    </li>
+  );
+}
 
 // Shared list UI for both a searched team's roster and the saved "My
 // Roster" list. `rowAction` renders whatever per-row button makes sense
-// for the context (save-to-roster vs. remove-from-roster).
+// for the context (save-to-roster vs. remove-from-roster). `groupByPosition`
+// switches from one flat list to fantasy-relevant position sections
+// (QB/RB/WR/TE/K/DEF/...) -- meant for the saved list, where scanning a
+// roster like a lineup is more useful than an alphabetical name list.
 export default function RosterList({
   title,
   players,
@@ -13,6 +40,7 @@ export default function RosterList({
   onSelectNone,
   rowAction,
   showTeamBadge = false,
+  groupByPosition = false,
   emptyMessage = "No players here yet.",
 }) {
   const [query, setQuery] = useState("");
@@ -31,6 +59,13 @@ export default function RosterList({
       return true;
     });
   }, [players, query, position]);
+
+  const groups = useMemo(
+    () => (groupByPosition ? groupByFantasyPosition(filtered) : null),
+    [groupByPosition, filtered]
+  );
+
+  const rowProps = { selectedIds, onToggle, showTeamBadge, rowAction };
 
   return (
     <div className="roster-panel">
@@ -65,27 +100,25 @@ export default function RosterList({
         <p className="roster-panel__hint">{emptyMessage}</p>
       ) : filtered.length === 0 ? (
         <p className="roster-panel__hint">No players match that filter.</p>
+      ) : groups ? (
+        <div className="roster-panel__groups">
+          {groups.map((group) => (
+            <div key={group.key} className="roster-panel__group">
+              <h4 className="roster-panel__group-label">
+                {group.label} <span className="roster-panel__group-count">({group.players.length})</span>
+              </h4>
+              <ul className="roster-panel__list">
+                {group.players.map((p) => (
+                  <PlayerRow key={p.id} p={p} {...rowProps} />
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
       ) : (
         <ul className="roster-panel__list">
           {filtered.map((p) => (
-            <li key={p.id}>
-              <div className="roster-panel__row">
-                <input
-                  type="checkbox"
-                  checked={selectedIds.has(p.id)}
-                  onChange={() => onToggle(p.id)}
-                  aria-label={`Select ${p.name}`}
-                />
-                <PlayerLink id={p.id} name={p.name} className="roster-panel__name" />
-                {p.position && <span className="roster-panel__position">{p.position}</span>}
-                {showTeamBadge && p.teamName && (
-                  <span className="roster-panel__badge">
-                    {p.teamName}{p.year ? ` · ${p.year}` : ""}
-                  </span>
-                )}
-              </div>
-              {rowAction && <div className="roster-panel__row-action">{rowAction(p)}</div>}
-            </li>
+            <PlayerRow key={p.id} p={p} {...rowProps} />
           ))}
         </ul>
       )}

@@ -65,10 +65,17 @@ week) — these would sharpen it for that audience specifically:
   from the recommendations with no explanation. Verified live: Clelin
   Ferrell (Clemson '18 alum, Miami Dolphins) correctly showed "Questionable"
   in both the results list and his card.
-- **Position-grouped My Roster view** (QB/RB/WR/TE/K/DEF sections instead of
-  one flat list). No new research needed — every saved player already
-  carries a `position` field, so this is a pure frontend grouping change to
-  `RosterList`/`SavedPlayersContext`, not a data problem.
+- **[Shipped] Position-grouped My Roster view** (QB/RB/WR/TE/K/Defense-Special-Teams/
+  O-Line sections instead of one flat list). Pure frontend: `fantasyPositions.js`
+  buckets ESPN's raw position abbreviations (which mix college and NFL naming
+  -- "PK" vs "K", "ILB"/"OLB" vs "LB") into fantasy-relevant groups, and
+  `RosterList` takes a new `groupByPosition` prop (on for My Roster, off for
+  a searched team's roster, which already has the position filter dropdown
+  and doesn't need full grouping on top of it). Name/position filtering and
+  Select all/Clear all still operate correctly on top of the grouped view --
+  verified live with a QB, WR, and DT saved together, each landing in its
+  own section with a correct count, and the position filter narrowing
+  correctly leaves only the matching group visible.
 - **Season stat line.** Confirmed feasible, and better than expected: an
   athlete's unscoped `statistics` ref (`.../athletes/{id}/statistics`)
   returns real current-season numbers by default (checked live — e.g. a
