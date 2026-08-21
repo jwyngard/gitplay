@@ -25,9 +25,18 @@ from.
   team's injury list plus longer comments, useful if a dedicated "injury
   report" view ever makes sense, but the per-roster field is enough for the
   card/results use case.)
-- **Click the team/college logo on the card to jump into searching that
-  team.** Pure frontend wiring, no new data needed — closes the loop from
-  "who is this" back to "show me their team."
+- **[Shipped] Click the team/college logo on the card to jump into
+  searching that team.** Closes the loop from "who is this" back to "show
+  me their team" — clicking either the team badge or the College row now
+  switches to Search, selects that team, and loads its roster right away
+  (an NFL team needs no year; a college team defaults to current year − 1,
+  since a card doesn't carry a specific season). Turned out not to be
+  *pure* frontend wiring as guessed — the card modal is mounted as a
+  sibling of `App`, not a descendant, so it needed a small
+  `NavigationContext` at the root for the modal to hand App a request
+  rather than calling a function directly (same shape as the earlier
+  `SavedPlayersContext` fix). Also required adding `id` to the card's
+  `college` field, which had been name+logo only.
 - **Shareable link to a specific player's card.** Would need real client-side
   routing (e.g. `/player/:id`) instead of modal-only state, since right now
   a card only exists as transient UI state with no URL. Bigger lift than it
