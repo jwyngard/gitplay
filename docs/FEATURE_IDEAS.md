@@ -76,20 +76,27 @@ week) — these would sharpen it for that audience specifically:
   verified live with a QB, WR, and DT saved together, each landing in its
   own section with a correct count, and the position filter narrowing
   correctly leaves only the matching group visible.
-- **Season stat line.** Confirmed feasible, and better than expected: an
-  athlete's unscoped `statistics` ref (`.../athletes/{id}/statistics`)
-  returns real current-season numbers by default (checked live — e.g. a
-  49er's `netTotalYards`/`netYardsPerGame` for the receiving category came
-  back small but real, consistent with only a few 2026 preseason games
-  having been played so far; a dedicated `seasons/{year}/.../statistics`
-  path 404s, so the unscoped endpoint's "current season" default is the
-  right one to use, not a season-scoped variant). One extra request per
-  card open (not embedded in the roster fetch, so it's on-demand cost
-  only), returning ~8 stat categories (general/passing/rushing/receiving/
-  defensive/defensiveInterceptions/returning/scoring) with mostly-zero
-  values in categories that don't apply to a given position — picking the
-  1-2 relevant categories per position (e.g. receiving for a WR, passing
-  for a QB) is a small mapping to write, not a data-availability problem.
+- **[Shipped] Season stat line.** The earlier note above (this section,
+  before it was built) guessed the unscoped `statistics` endpoint returned
+  current-season numbers by default. That was wrong, caught during actual
+  implementation: it returns *career* totals — confirmed by a real pass
+  rusher showing 64.5 career sacks under "current season," not a plausible
+  single-season number. The real season-scoped resource is reached
+  indirectly via an athlete's `statisticslog` (lists every season they
+  have stats for, links to that season's totals) — two requests instead of
+  one, but genuinely season-accurate. Shows a compact position-appropriate
+  line: QB gets pass yards/TD/INT plus rush yards/TD; RB gets rush yards/TD
+  plus receptions/rec yards; WR/TE get receptions/rec yards/rec TD; K gets
+  field goals/XP/points; defensive positions get tackles/sacks/TFL/INT.
+  Verified live with real 2025 numbers across all five groups (Trevor
+  Lawrence, Tee Higgins, Nick Bosa, Eddy Pineiro).
+
+  Also surfaced a real bug worth remembering: ESPN's `$ref` links use plain
+  `http://`, and this was the first place the app fetched one verbatim
+  instead of reconstructing its own `https://` URL — the proxy this app
+  was developed behind rejects plain-HTTP requests outright, which showed
+  up as a confusing intermittent 403 until traced to the scheme. Any future
+  code that follows a raw `$ref` needs to upgrade the scheme first.
 - **Opponent context on the results list** — who the alum's team is playing
   and (if easily available) that opponent's rank against the alum's
   position, to hint at a good/bad matchup. Still would need investigation:
