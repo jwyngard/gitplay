@@ -28,6 +28,25 @@ from.
   a card only exists as transient UI state with no URL. Bigger lift than it
   sounds for a single-page app with no router yet.
 
+## Schedule & recommendations
+
+- **[Shipped] Roll forward past a fully-completed week.** The app's job is
+  planning *upcoming* TV watching, so a week where every game already has a
+  final score isn't useful output, even during the real gap ESPN has
+  between the last preseason slate and the next one (it keeps calling the
+  finished week "current" until new games are posted). `getWeekGames()` now
+  detects an all-completed result and probes forward (explicit
+  `?seasontype=&week=` params on the scoreboard endpoint) until it finds a
+  week with at least one game not yet played, rolling over to the next
+  season type when a week comes back empty. Verified live: default
+  scoreboard returned preseason Week 3 (Aug 21, all Final); the app now
+  serves preseason Week 4 (Aug 27-29, all scheduled) instead. Preseason
+  length isn't hardcoded — probing found a real Week 4 in 2026 that a
+  "preseason is always 3 weeks" assumption would have skipped past straight
+  to the regular season. The "no upcoming games" banner still exists for
+  the genuine edge case (deep offseason, nothing posted yet within the
+  lookahead window).
+
 ## Investigated and ruled out
 
 - **Year picker for pro (NFL) team rosters**, matching the college team

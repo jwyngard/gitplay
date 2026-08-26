@@ -46,9 +46,8 @@ export default function ResultsPanel({ data }) {
 
       {allCompleted && (
         <div className="results-panel__notice">
-          These games have already been played — there's a gap before the next
-          slate is scheduled, and ESPN doesn't show upcoming games until they're
-          added to the schedule.
+          No upcoming games are on the schedule yet — these are the most
+          recent completed games. Check back once the next slate is posted.
         </div>
       )}
 

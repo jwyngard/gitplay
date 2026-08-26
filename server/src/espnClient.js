@@ -527,9 +527,13 @@ async function getPlayerNoteIndex() {
   return index;
 }
 
-export async function getWeekGames() {
-  const data = await getJson(`${SITE_BASE}/nfl/scoreboard`);
-  const games = data.events.map((event) => {
+async function fetchScoreboard(params) {
+  const qs = params ? `?${new URLSearchParams(params)}` : "";
+  return getJson(`${SITE_BASE}/nfl/scoreboard${qs}`);
+}
+
+function mapGames(events) {
+  return events.map((event) => {
     const competition = event.competitions[0];
     const home = competition.competitors.find((c) => c.homeAway === "home");
     const away = competition.competitors.find((c) => c.homeAway === "away");
@@ -541,10 +545,6 @@ export async function getWeekGames() {
       name: event.name,
       shortName: event.shortName,
       broadcast,
-      // ESPN's "current week" can be entirely in the past -- e.g. the gap
-      // between the last preseason slate and the first regular-season one,
-      // where there's nothing newer to show yet. Surfacing status/score
-      // lets the UI say "Final" instead of implying these are upcoming.
       completed: statusType.completed ?? false,
       statusDetail: statusType.shortDetail ?? null,
       home: {
@@ -561,6 +561,43 @@ export async function getWeekGames() {
       },
     };
   });
+}
+
+export async function getWeekGames() {
+  let data = await fetchScoreboard();
+  let games = mapGames(data.events);
+  let allCompleted = games.length > 0 && games.every((g) => g.completed);
+
+  // This is a TV-planning tool -- a week that's entirely in the past isn't
+  // useful to show, even though ESPN keeps calling it "current" during the
+  // gap between one slate and the next (e.g. after the last preseason week
+  // ends, before the first regular-season week kicks off). Walk forward
+  // through the schedule, probing explicit seasontype/week combinations,
+  // until landing on a week with at least one game still to be played.
+  // Season lengths aren't assumed (preseason has run both 3 and 4 weeks in
+  // different years) -- an empty response for a week is what signals it's
+  // time to roll over to the next season type instead.
+  if (allCompleted && data.season && data.week) {
+    let seasonType = data.season.type;
+    let week = data.week.number;
+    for (let attempts = 0; attempts < 8; attempts++) {
+      week += 1;
+      const candidate = await fetchScoreboard({ seasontype: seasonType, week });
+      if (!candidate.events?.length) {
+        seasonType += 1;
+        week = 0;
+        if (seasonType > 3) break;
+        continue;
+      }
+      const candidateGames = mapGames(candidate.events);
+      if (!candidateGames.every((g) => g.completed)) {
+        data = candidate;
+        games = candidateGames;
+        allCompleted = false;
+        break;
+      }
+    }
+  }
 
   // ESPN doesn't expose a "these teams are on bye" field -- derive it: the
   // full 32-team league minus whoever is actually playing this week. Empty
@@ -569,8 +606,6 @@ export async function getWeekGames() {
   const nflTeams = await getNflTeams();
   const playingTeamIds = new Set(games.flatMap((g) => [g.home.teamId, g.away.teamId]));
   const byeTeams = Array.from(nflTeams.values()).filter((t) => !playingTeamIds.has(t.id));
-
-  const allCompleted = games.length > 0 && games.every((g) => g.completed);
 
   return { week: data.week ?? null, games, byeTeams, allCompleted };
 }
