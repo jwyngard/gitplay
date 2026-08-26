@@ -7,24 +7,10 @@ from.
 
 ## From the player-card feature
 
-- **Career stat line on the card.** Confirmed feasible: an athlete record's
-  `statistics` ref (`.../athletes/{id}/statistics`) returns real per-season
-  stat categories (checked live — e.g. general stats, presumably
-  passing/rushing/receiving/defense depending on position). Not yet pulled
-  into `/api/player/:id`.
-- **Injury status / news blurb.** Confirmed feasible, and better than
-  expected: real per-player injury data (status + date, e.g. `{"status":
-  "Questionable", "date": "2026-08-19T12:07Z"}`) is already sitting in the
-  `injuries` field of every athlete entry in the team roster response
-  (`site.api.espn.com/.../nfl/teams/{id}/roster`) — the same response the
-  backend already fetches for the NFL roster index and just discards this
-  field from today. Statuses seen live: Questionable, Out, Injured Reserve.
-  Zero extra requests to add this to the player card or results list;
-  purely a matter of capturing a field already in hand. (There's also a
-  separate league-wide `.../nfl/injuries` endpoint with one call for every
-  team's injury list plus longer comments, useful if a dedicated "injury
-  report" view ever makes sense, but the per-roster field is enough for the
-  card/results use case.)
+- **[Shipped]** ~~Career stat line on the card~~ and ~~Injury status~~ — see
+  "Season stat line" and "Bye-week awareness + real injury designations"
+  under Fantasy-football-relevant ideas below (this entry originally
+  proposed them; left as a pointer instead of duplicating).
 - **[Shipped] Click the team/college logo on the card to jump into
   searching that team.** Closes the loop from "who is this" back to "show
   me their team" — clicking either the team badge or the College row now
