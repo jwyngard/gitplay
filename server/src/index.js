@@ -35,7 +35,7 @@ app.use((req, res, next) => {
 // week's schedule, returning games worth watching.
 async function buildRecommendations(players) {
   const alumni = await getAlumniForPlayers(players);
-  const { week, games, byeTeams } = await getWeekGames();
+  const { week, games, byeTeams, allCompleted } = await getWeekGames();
 
   const alumniByTeamId = new Map();
   for (const player of alumni) {
@@ -70,6 +70,7 @@ async function buildRecommendations(players) {
     recommendations,
     byeAlumni,
     allAlumni: alumni,
+    allCompleted,
   };
 }
 

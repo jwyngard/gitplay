@@ -48,6 +48,7 @@ const cache = {
   nflRosterIndex: null, // athleteId -> { team, position, jersey, status, statusName }
   collegeTeamsById: null, // Map, built lazily from collegeTeams
   playerCards: new Map(), // athleteId -> card object | null (null = no profile found)
+  playerNotes: null, // Map, athleteId -> {status, shortComment, longComment, date}
 };
 
 async function getCollegeTeamById(id) {
@@ -273,6 +274,13 @@ export async function getPlayerCard(id) {
 
   const position = detail.position?.abbreviation ?? null;
   const seasonStats = level === "nfl" ? await getSeasonStatLine(id, position) : null;
+  const careerHistory = await getCareerHistory(id, level);
+
+  let injuryNote = null;
+  if (injuryStatus) {
+    const notes = await getPlayerNoteIndex();
+    injuryNote = notes.get(id) ?? null;
+  }
 
   const card = {
     id,
@@ -292,11 +300,13 @@ export async function getPlayerCard(id) {
     team,
     teamIsCurrent,
     injuryStatus,
+    injuryNote,
     college,
     draft,
     experience: detail.experience?.years ?? null,
     status: detail.status ? { name: detail.status.name, type: detail.status.type } : null,
     seasonStats,
+    careerHistory,
   };
 
   cache.playerCards.set(id, card);
@@ -424,6 +434,99 @@ async function getSeasonStatLine(id, position) {
   }
 }
 
+// Collapses [{year, team}] (any order) into contiguous same-team ranges,
+// e.g. three straight years at the same school become one "2021-2023"
+// entry instead of three. A gap breaks the range even if the same team
+// resumes later -- that's a real gap (injury, transfer and back), not
+// continuous presence, and showing it as one range would misstate that.
+function collapseIntoRanges(entries) {
+  const sorted = [...entries].sort((a, b) => a.year - b.year);
+  const ranges = [];
+  for (const { year, team } of sorted) {
+    const last = ranges[ranges.length - 1];
+    if (last && last.team.id === team.id && year === last.endYear + 1) {
+      last.endYear = year;
+    } else {
+      ranges.push({ team, startYear: year, endYear: year });
+    }
+  }
+  return ranges;
+}
+
+// A player's school-by-school (and, for anyone who made the NFL,
+// team-by-team) history with years -- not just "current team," which
+// hides transfers and trades entirely. Built from `statisticslog`, which
+// lists every season an athlete has recorded stats for and links each to
+// that season's team -- a side effect of stat-tracking, but exactly the
+// season/team pairing needed here, and already the same resource
+// `getSeasonStatLine` uses for a different purpose.
+async function getCareerHistory(id, level) {
+  async function seasonsFor(sport, teamLookup) {
+    try {
+      const log = await getJsonWithRetry(
+        `${CORE_BASE}/${sport}/athletes/${id}/statisticslog?lang=en&region=us`
+      );
+      const entries = await mapWithConcurrency(log.entries ?? [], 10, async (entry) => {
+        const year = entry.season?.$ref ? Number(extractIdFromRef(entry.season.$ref)) : null;
+        const teamStat = entry.statistics?.find((s) => s.type === "team");
+        const teamRef = teamStat?.team?.$ref;
+        if (!year || !teamRef) return null;
+        const teamId = extractIdFromRef(teamRef);
+        const team = teamId ? await teamLookup(teamId) : null;
+        return team ? { year, team } : null;
+      });
+      return collapseIntoRanges(entries.filter(Boolean));
+    } catch (err) {
+      if (err.status !== 404) console.warn(`getCareerHistory(${id}, ${sport}) failed:`, err.message);
+      return [];
+    }
+  }
+
+  const nflTeams = await getNflTeams();
+  const college = await seasonsFor("college-football", getCollegeTeamById);
+  const nfl = level === "nfl" ? await seasonsFor("nfl", async (tid) => nflTeams.get(tid) ?? null) : [];
+  return { college, nfl };
+}
+
+// Some currently-tagged players have a richer news/notes blurb behind
+// their injury status (contract updates, specifics on the injury itself)
+// beyond the bare "Questionable"/"Out" on their roster entry -- but this
+// feed is a curated news feed, not a full injury report, so most players
+// (even ones with a real designation) simply won't be in it. Treat a miss
+// as normal, not a failure. One request covers the whole league, so it's
+// cached and reused across every card instead of refetched per player.
+async function getPlayerNoteIndex() {
+  if (cache.playerNotes) return cache.playerNotes;
+
+  const index = new Map();
+  try {
+    const data = await getJson(`${SITE_BASE}/nfl/injuries`);
+    for (const team of data.injuries ?? []) {
+      for (const note of team.injuries ?? []) {
+        // The note's own "id" is the news item, not the player -- the
+        // athlete sub-object has no plain id field, so pull it from their
+        // player-card link instead. That link has the id mid-path
+        // (".../id/3886633/hjalte-froholdt"), not at the end, so
+        // extractIdFromRef's trailing-segment match doesn't apply here.
+        const playercardLink = note.athlete?.links?.find((l) => l.rel?.includes("playercard"));
+        const athleteId = playercardLink?.href.match(/\/id\/(\d+)\//)?.[1] ?? null;
+        if (!athleteId) continue;
+        index.set(athleteId, {
+          status: note.status ?? null,
+          shortComment: note.shortComment ?? null,
+          longComment: note.longComment ?? null,
+          date: note.date ?? null,
+        });
+      }
+    }
+  } catch (err) {
+    console.warn("getPlayerNoteIndex failed:", err.message);
+  }
+
+  cache.playerNotes = index;
+  return index;
+}
+
 export async function getWeekGames() {
   const data = await getJson(`${SITE_BASE}/nfl/scoreboard`);
   const games = data.events.map((event) => {
@@ -431,14 +534,31 @@ export async function getWeekGames() {
     const home = competition.competitors.find((c) => c.homeAway === "home");
     const away = competition.competitors.find((c) => c.homeAway === "away");
     const broadcast = competition.broadcasts?.[0]?.names?.join(", ") ?? null;
+    const statusType = event.status?.type ?? {};
     return {
       id: event.id,
       date: event.date,
       name: event.name,
       shortName: event.shortName,
       broadcast,
-      home: { teamId: home.team.id, name: home.team.displayName, abbreviation: home.team.abbreviation },
-      away: { teamId: away.team.id, name: away.team.displayName, abbreviation: away.team.abbreviation },
+      // ESPN's "current week" can be entirely in the past -- e.g. the gap
+      // between the last preseason slate and the first regular-season one,
+      // where there's nothing newer to show yet. Surfacing status/score
+      // lets the UI say "Final" instead of implying these are upcoming.
+      completed: statusType.completed ?? false,
+      statusDetail: statusType.shortDetail ?? null,
+      home: {
+        teamId: home.team.id,
+        name: home.team.displayName,
+        abbreviation: home.team.abbreviation,
+        score: home.score ?? null,
+      },
+      away: {
+        teamId: away.team.id,
+        name: away.team.displayName,
+        abbreviation: away.team.abbreviation,
+        score: away.score ?? null,
+      },
     };
   });
 
@@ -450,5 +570,7 @@ export async function getWeekGames() {
   const playingTeamIds = new Set(games.flatMap((g) => [g.home.teamId, g.away.teamId]));
   const byeTeams = Array.from(nflTeams.values()).filter((t) => !playingTeamIds.has(t.id));
 
-  return { week: data.week ?? null, games, byeTeams };
+  const allCompleted = games.length > 0 && games.every((g) => g.completed);
+
+  return { week: data.week ?? null, games, byeTeams, allCompleted };
 }

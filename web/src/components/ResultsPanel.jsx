@@ -33,7 +33,7 @@ function AlumniList({ label, players }) {
 }
 
 export default function ResultsPanel({ data }) {
-  const { week, rosterSize, consideredPlayers, alumniCount, recommendations, byeAlumni } = data;
+  const { week, rosterSize, consideredPlayers, alumniCount, recommendations, byeAlumni, allCompleted } = data;
 
   return (
     <div className="results-panel">
@@ -43,6 +43,14 @@ export default function ResultsPanel({ data }) {
         {consideredPlayers !== rosterSize ? ` (of ${rosterSize} on roster)` : ""} are on
         current NFL rosters.
       </div>
+
+      {allCompleted && (
+        <div className="results-panel__notice">
+          These games have already been played — there's a gap before the next
+          slate is scheduled, and ESPN doesn't show upcoming games until they're
+          added to the schedule.
+        </div>
+      )}
 
       {byeAlumni?.length > 0 && (
         <div className="results-panel__bye">
@@ -71,8 +79,17 @@ export default function ResultsPanel({ data }) {
                 </span>
               </div>
               <div className="game-card__meta">
-                {dateFormatter.format(new Date(game.date))}
-                {game.broadcast ? ` · ${game.broadcast}` : ""}
+                {game.completed ? (
+                  <span className="game-card__final">
+                    {game.statusDetail ?? "Final"}: {game.away.abbreviation} {game.away.score} -{" "}
+                    {game.home.abbreviation} {game.home.score}
+                  </span>
+                ) : (
+                  <>
+                    {dateFormatter.format(new Date(game.date))}
+                    {game.broadcast ? ` · ${game.broadcast}` : ""}
+                  </>
+                )}
               </div>
               <div className="game-card__sides">
                 <AlumniList label={game.away.abbreviation} players={awayAlumni} />

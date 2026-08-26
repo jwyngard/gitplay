@@ -377,8 +377,11 @@ button {
   color: #fff;
 }
 
+.roster-panel__header-action {
+  margin: 0.6rem 0 0.9rem;
+}
+
 .app__find-button {
-  margin-top: 1rem;
   width: 100%;
   background: var(--accent);
   color: #fff;
@@ -405,6 +408,16 @@ button {
 
 .results-panel__empty {
   color: var(--muted);
+}
+
+.results-panel__notice {
+  background: #2a2410;
+  border: 1px solid #5c4d1a;
+  color: #f0c94d;
+  border-radius: 8px;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
 }
 
 .results-panel__bye {
@@ -459,6 +472,11 @@ button {
   color: var(--muted);
   font-size: 0.8rem;
   margin: 0.15rem 0 0.75rem;
+}
+
+.game-card__final {
+  color: var(--text);
+  font-weight: 600;
 }
 
 .game-card__sides {
@@ -633,12 +651,56 @@ button {
   margin-bottom: 1.25rem;
 }
 
-.player-card__season {
+.player-card__season,
+.player-card__career {
   background: #0d0f13;
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 0.75rem 0.85rem;
   margin-bottom: 1.25rem;
+}
+
+.player-card__career-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.player-card__career-group + .player-card__career-group {
+  margin-top: 0.6rem;
+}
+
+.player-card__career-label {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--muted);
+  margin-bottom: 0.2rem;
+}
+
+.player-card__career-group ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.player-card__career-group li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.88rem;
+}
+
+.player-card__career-years {
+  color: var(--muted);
+  font-size: 0.78rem;
+  flex: 0 0 auto;
+  min-width: 3.2rem;
 }
 
 .player-card__season-title {

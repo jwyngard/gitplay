@@ -44,6 +44,7 @@ export default function RosterList({
   showTeamBadge = false,
   groupByPosition = false,
   emptyMessage = "No players here yet.",
+  headerAction,
 }) {
   const [query, setQuery] = useState("");
   const [position, setPosition] = useState("");
@@ -78,6 +79,8 @@ export default function RosterList({
           <button type="button" onClick={onSelectNone}>Clear</button>
         </div>
       </div>
+
+      {headerAction && <div className="roster-panel__header-action">{headerAction}</div>}
 
       {players.length > 0 && (
         <div className="roster-panel__filters">

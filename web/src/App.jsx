@@ -225,6 +225,16 @@ export default function App() {
                 onToggle={toggleId}
                 onSelectAll={() => setSelectedIds(new Set(roster.map((p) => p.id)))}
                 onSelectNone={() => setSelectedIds(new Set())}
+                headerAction={
+                  <button
+                    type="button"
+                    className="app__find-button"
+                    disabled={noneSelected || resultsLoading}
+                    onClick={handleFindGames}
+                  >
+                    {resultsLoading ? "Checking rosters…" : "Find games to watch"}
+                  </button>
+                }
                 rowAction={(p) => (
                   <button
                     type="button"
@@ -236,14 +246,6 @@ export default function App() {
                   </button>
                 )}
               />
-              <button
-                type="button"
-                className="app__find-button"
-                disabled={noneSelected || resultsLoading}
-                onClick={handleFindGames}
-              >
-                {resultsLoading ? "Checking rosters…" : "Find games to watch"}
-              </button>
             </section>
           )}
         </>
@@ -261,22 +263,24 @@ export default function App() {
             showTeamBadge
             groupByPosition
             emptyMessage="Nothing saved yet. Search a team, then star players to add them here."
+            headerAction={
+              savedPlayers.length > 0 && (
+                <button
+                  type="button"
+                  className="app__find-button"
+                  disabled={noneSavedSelected || resultsLoading}
+                  onClick={handleFindGamesFromSaved}
+                >
+                  {resultsLoading ? "Checking rosters…" : "Find games to watch"}
+                </button>
+              )
+            }
             rowAction={(p) => (
               <button type="button" className="remove-button" onClick={() => removePlayer(p.id)}>
                 Remove
               </button>
             )}
           />
-          {savedPlayers.length > 0 && (
-            <button
-              type="button"
-              className="app__find-button"
-              disabled={noneSavedSelected || resultsLoading}
-              onClick={handleFindGamesFromSaved}
-            >
-              {resultsLoading ? "Checking rosters…" : "Find games to watch"}
-            </button>
-          )}
         </section>
       )}
 

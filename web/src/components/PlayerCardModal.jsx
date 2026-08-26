@@ -13,6 +13,29 @@ function toPickerTeam(team, kind) {
 const FALLBACK_HEADSHOT =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23262a33'/%3E%3Ccircle cx='50' cy='38' r='18' fill='%233d4250'/%3E%3Cpath d='M20 90c0-19 13-32 30-32s30 13 30 32' fill='%233d4250'/%3E%3C/svg%3E";
 
+function formatYears(range) {
+  return range.startYear === range.endYear ? String(range.startYear) : `${range.startYear}–${range.endYear}`;
+}
+
+function CareerGroup({ label, ranges, goToTeam, kind }) {
+  if (!ranges.length) return null;
+  return (
+    <div className="player-card__career-group">
+      <span className="player-card__career-label">{label}</span>
+      <ul>
+        {ranges.map((r) => (
+          <li key={`${r.team.id}-${r.startYear}`}>
+            <span className="player-card__career-years">{formatYears(r)}</span>
+            <button type="button" className="player-card__stat-link" onClick={() => goToTeam(r.team, kind)}>
+              {r.team.name}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function Stat({ label, children }) {
   if (children === null || children === undefined || children === "") return null;
   return (
@@ -129,15 +152,28 @@ export default function PlayerCardModal({ playerId, onClose }) {
               </div>
             )}
 
+            {card.careerHistory && (card.careerHistory.college.length > 0 || card.careerHistory.nfl.length > 1) && (
+              <div className="player-card__career">
+                <h3 className="player-card__career-title">Career</h3>
+                <CareerGroup label="College" ranges={card.careerHistory.college} goToTeam={goToTeam} kind="college" />
+                <CareerGroup label="Pro" ranges={card.careerHistory.nfl} goToTeam={goToTeam} kind="pro" />
+              </div>
+            )}
+
             <div className="player-card__stats">
               <Stat label="Status">{card.status?.name}</Stat>
-              {card.injuryStatus && <Stat label="Injury">{card.injuryStatus}</Stat>}
+              {card.injuryStatus && (
+                <Stat label="Injury">
+                  {card.injuryStatus}
+                  {card.injuryNote?.shortComment ? ` — ${card.injuryNote.shortComment}` : ""}
+                </Stat>
+              )}
               <Stat label="Experience">{card.experience != null ? `${card.experience} yr${card.experience === 1 ? "" : "s"}` : null}</Stat>
               <Stat label="Height">{card.height}</Stat>
               <Stat label="Weight">{card.weight}</Stat>
               <Stat label="Age">{card.age}</Stat>
               <Stat label="Born">{card.birthPlace}</Stat>
-              {card.college && (
+              {!card.careerHistory?.college.length && card.college && (
                 <div className="player-card__stat">
                   <span className="player-card__stat-label">College</span>
                   {card.college.id ? (
@@ -154,10 +190,25 @@ export default function PlayerCardModal({ playerId, onClose }) {
                 </div>
               )}
               {card.draft && (
-                <Stat label="Draft">
-                  {card.draft.displayText}
-                  {card.draft.team ? ` (${card.draft.team.abbreviation})` : ""}
-                </Stat>
+                <div className="player-card__stat">
+                  <span className="player-card__stat-label">Draft</span>
+                  <span className="player-card__stat-value">
+                    {card.draft.displayText}
+                    {card.draft.team && (
+                      <>
+                        {" ("}
+                        <button
+                          type="button"
+                          className="player-card__stat-link"
+                          onClick={() => goToTeam(card.draft.team, "pro")}
+                        >
+                          {card.draft.team.abbreviation}
+                        </button>
+                        {")"}
+                      </>
+                    )}
+                  </span>
+                </div>
               )}
               {!card.draft && card.level === "nfl" && <Stat label="Draft">Undrafted</Stat>}
             </div>
