@@ -22,14 +22,7 @@ body {
 .app {
   max-width: 720px;
   margin: 0 auto;
-  /* In a browser tab these resolve to 0 and the max()/calc() just falls
-     back to the plain rem values; on a notched/Dynamic-Island phone
-     running this as the packaged Capacitor app, the WebView draws
-     edge-to-edge with no awareness of the safe area on its own, so
-     without this the header sits under the camera cutout and the last
-     list row runs into the home-indicator strip. */
-  padding: max(2rem, calc(env(safe-area-inset-top) + 1rem)) 1.25rem
-    max(4rem, calc(env(safe-area-inset-bottom) + 2rem));
+  padding: 2rem 1.25rem 4rem;
 }
 
 .app__header h1 {

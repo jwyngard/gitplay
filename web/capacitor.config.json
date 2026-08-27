@@ -1,5 +1,8 @@
 {
   "appId": "com.alumniwatch.app",
   "appName": "Alumni Watch",
-  "webDir": "dist"
+  "webDir": "dist",
+  "ios": {
+    "contentInset": "automatic"
+  }
 }
