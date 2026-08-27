@@ -4,5 +4,10 @@
   "webDir": "dist",
   "ios": {
     "contentInset": "automatic"
+  },
+  "plugins": {
+    "Keyboard": {
+      "resize": "native"
+    }
   }
 }
