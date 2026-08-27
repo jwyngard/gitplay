@@ -8,14 +8,24 @@
 const SITE_BASE = "https://site.api.espn.com/apis/site/v2/sports/football";
 const CORE_BASE = "https://sports.core.api.espn.com/v2/sports/football/leagues";
 
-async function getJson(url) {
-  const res = await fetch(url);
-  if (!res.ok) {
+// Retries after a short backoff -- ESPN's public API has shown transient
+// (non-404) failures that clear up within a request or two (observed live
+// while building this: identical requests moments apart went 403, 403, 200
+// with nothing else changed, and it's hit more than one endpoint shape,
+// from core-API athlete lookups to the plain site-API team list). Worth
+// retrying everywhere this client calls ESPN, not just the endpoints that
+// happened to get caught in testing -- most results here are cached for
+// the life of the process, so an un-retried transient failure poisons that
+// cache permanently until the server restarts.
+async function getJson(url, attempts = 3) {
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    const res = await fetch(url);
+    if (res.ok) return res.json();
     const err = new Error(`ESPN request failed: ${res.status} ${url}`);
     err.status = res.status;
-    throw err;
+    if (res.status === 404 || attempt === attempts) throw err;
+    await new Promise((resolve) => setTimeout(resolve, attempt * 400));
   }
-  return res.json();
 }
 
 // Runs `worker` over `items` with at most `concurrency` in flight at once.
@@ -378,34 +388,16 @@ function statGroupForPosition(position) {
 // and links to that season's totals. Uses the most recent logged season,
 // whatever that is (usually last year during the current preseason, since
 // this year's regular season hasn't produced stats yet).
-// Retries after a short backoff -- ESPN's core API has shown transient
-// (non-404) failures on this particular endpoint shape that clear up
-// within a request or two (observed live while building this: identical
-// requests moments apart went 403, 403, 200 with nothing else changed).
-// Worth a couple retries specifically here since getPlayerCard results are
-// cached for the life of the process -- a failure that isn't retried out
-// would otherwise poison the cache permanently for that player.
-async function getJsonWithRetry(url, attempts = 3) {
-  for (let attempt = 1; attempt <= attempts; attempt++) {
-    try {
-      return await getJson(url);
-    } catch (err) {
-      if (err.status === 404 || attempt === attempts) throw err;
-      await new Promise((resolve) => setTimeout(resolve, attempt * 400));
-    }
-  }
-}
-
-// This is enhancement data, not core card data -- any failure here (the
-// retry above included) should just mean "no stat line," never break the
-// rest of the card.
+// This is enhancement data, not core card data -- any failure here (even
+// after getJson's own retries) should just mean "no stat line," never
+// break the rest of the card.
 async function getSeasonStatLine(id, position) {
   const group = statGroupForPosition(position);
   const fields = group ? STAT_FIELDS_BY_GROUP[group] : null;
   if (!fields) return null;
 
   try {
-    const log = await getJsonWithRetry(`${CORE_BASE}/nfl/athletes/${id}/statisticslog?lang=en&region=us`);
+    const log = await getJson(`${CORE_BASE}/nfl/athletes/${id}/statisticslog?lang=en&region=us`);
     const entry = log.entries?.[0];
     const total = entry?.statistics?.find((s) => s.type === "total");
     // ESPN's $ref links use plain http://, unlike every other URL this
@@ -417,7 +409,7 @@ async function getSeasonStatLine(id, position) {
     if (!statsUrl) return null;
 
     const season = entry.season?.$ref ? extractIdFromRef(entry.season.$ref) : null;
-    const statsDoc = await getJsonWithRetry(statsUrl);
+    const statsDoc = await getJson(statsUrl);
 
     const categories = new Map((statsDoc.splits?.categories ?? []).map((c) => [c.name, c]));
     const stats = fields
@@ -463,7 +455,7 @@ function collapseIntoRanges(entries) {
 async function getCareerHistory(id, level) {
   async function seasonsFor(sport, teamLookup) {
     try {
-      const log = await getJsonWithRetry(
+      const log = await getJson(
         `${CORE_BASE}/${sport}/athletes/${id}/statisticslog?lang=en&region=us`
       );
       const entries = await mapWithConcurrency(log.entries ?? [], 10, async (entry) => {
