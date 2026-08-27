@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import TeamPicker from "./components/TeamPicker.jsx";
 import RosterList from "./components/RosterList.jsx";
 import ResultsPanel from "./components/ResultsPanel.jsx";
+import BottomNav from "./components/BottomNav.jsx";
 import {
   getCollegeTeams,
   getProTeams,
@@ -16,7 +17,7 @@ import { useNavigation } from "./NavigationContext.jsx";
 const CURRENT_YEAR = new Date().getFullYear();
 
 export default function App() {
-  const [view, setView] = useState("search"); // "search" | "saved"
+  const [view, setView] = useState("search"); // "search" | "saved" | "games"
 
   const [teams, setTeams] = useState([]);
   const [teamsError, setTeamsError] = useState(null);
@@ -100,6 +101,7 @@ export default function App() {
   }, [pendingTeamSearch]);
 
   async function handleFindGames() {
+    setView("games");
     setResultsLoading(true);
     setResultsError(null);
     try {
@@ -120,6 +122,7 @@ export default function App() {
   }
 
   async function handleFindGamesFromSaved() {
+    setView("games");
     setResultsLoading(true);
     setResultsError(null);
     try {
@@ -163,23 +166,6 @@ export default function App() {
           then see which of this week's games are worth watching.
         </p>
       </header>
-
-      <nav className="app__tabs">
-        <button
-          type="button"
-          className={view === "search" ? "active" : ""}
-          onClick={() => setView("search")}
-        >
-          Search teams
-        </button>
-        <button
-          type="button"
-          className={view === "saved" ? "active" : ""}
-          onClick={() => setView("saved")}
-        >
-          My roster ({savedPlayers.length})
-        </button>
-      </nav>
 
       {view === "search" && (
         <>
@@ -284,13 +270,26 @@ export default function App() {
         </section>
       )}
 
-      {resultsError && <p className="error">Couldn't build recommendations: {resultsError}</p>}
-
-      {results && (
+      {view === "games" && (
         <section className="app__results">
-          <ResultsPanel data={results} />
+          {resultsError && <p className="error">Couldn't build recommendations: {resultsError}</p>}
+          {resultsLoading && <p className="roster-panel__hint">Checking rosters…</p>}
+          {!resultsLoading && results && <ResultsPanel data={results} />}
+          {!resultsLoading && !results && !resultsError && (
+            <p className="roster-panel__hint">
+              No games yet — pick players on Search Teams or My Roster, then tap "Find games to
+              watch."
+            </p>
+          )}
         </section>
       )}
+
+      <BottomNav
+        view={view}
+        onChange={setView}
+        rosterCount={savedPlayers.length}
+        gamesCount={results?.recommendations?.length ?? 0}
+      />
     </div>
   );
 }

@@ -22,7 +22,9 @@ body {
 .app {
   max-width: 720px;
   margin: 0 auto;
-  padding: 2rem 1.25rem 4rem;
+  /* Extra bottom padding so the last row of content clears the fixed
+     bottom-nav pill instead of hiding behind it. */
+  padding: 2rem 1.25rem 6.5rem;
 }
 
 .app__header h1 {
@@ -355,26 +357,67 @@ button {
   border-color: #f97066;
 }
 
-.app__tabs {
+/* Floats above the home indicator with its own margin rather than sitting
+   flush against the bottom edge -- sidesteps needing safe-area-inset math
+   (which didn't take effect in this app's WKWebView) since a pill nav with
+   real clearance was the reference design anyway. */
+.bottom-nav {
+  position: fixed;
+  left: 50%;
+  bottom: 1.25rem;
+  transform: translateX(-50%);
   display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1.25rem;
-}
-
-.app__tabs button {
-  background: none;
+  gap: 0.15rem;
+  background: rgba(23, 26, 33, 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border: 1px solid var(--border);
-  color: var(--muted);
   border-radius: 999px;
-  padding: 0.4rem 0.9rem;
-  font-size: 0.85rem;
-  font-weight: 600;
+  padding: 0.4rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  z-index: 50;
+  max-width: calc(100vw - 1.5rem);
 }
 
-.app__tabs button.active {
-  background: var(--accent);
-  border-color: var(--accent);
+.bottom-nav__tab {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  background: none;
+  border: none;
+  color: var(--muted);
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.bottom-nav__tab.active {
   color: #fff;
+  background: var(--accent);
+}
+
+.bottom-nav__icon {
+  width: 20px;
+  height: 20px;
+}
+
+.bottom-nav__badge {
+  position: absolute;
+  top: -0.1rem;
+  right: 0.3rem;
+  background: #e0483e;
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0.15rem 0.35rem;
+  border-radius: 999px;
+  min-width: 1.1rem;
+  text-align: center;
 }
 
 .roster-panel__header-action {
