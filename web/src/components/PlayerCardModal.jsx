@@ -110,13 +110,18 @@ export default function PlayerCardModal({ playerId, onClose }) {
                     onClick={() => goToTeam(card.team, card.team.kind === "nfl" ? "pro" : "college")}
                     title={`Search ${card.team.name}`}
                   >
-                    {card.team.logo && (
-                      <img className="player-card__team-logo" src={card.team.logo} alt="" width={32} height={32} />
+                    {card.team.kind !== "nfl" && card.team.logo && (
+                      <img className="player-card__team-logo" src={card.team.logo} alt="" width={40} height={40} />
                     )}
                     <span>{card.team.name}</span>
                     {card.team.kind === "nfl" && (
-                      <span className={`player-card__badge${card.teamIsCurrent ? "" : " player-card__badge--muted"}`}>
-                        {card.teamIsCurrent ? "Current" : "Last known"}
+                      <span className="player-card__team-status">
+                        {card.team.logo && (
+                          <img className="player-card__team-logo" src={card.team.logo} alt="" width={40} height={40} />
+                        )}
+                        <span className={`player-card__badge${card.teamIsCurrent ? "" : " player-card__badge--muted"}`}>
+                          {card.teamIsCurrent ? "Current" : "Last known"}
+                        </span>
                       </span>
                     )}
                   </button>

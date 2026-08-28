@@ -673,6 +673,13 @@ button {
   text-decoration: underline;
 }
 
+.player-card__team-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+
 .player-card__stat-link {
   display: inline-flex;
   align-items: center;
