@@ -27,6 +27,7 @@ function CareerGroup({ label, ranges, goToTeam, kind }) {
           <li key={`${r.team.id}-${r.startYear}`}>
             <span className="player-card__career-years">{formatYears(r)}</span>
             <button type="button" className="player-card__stat-link" onClick={() => goToTeam(r.team, kind)}>
+              {r.team.logo && <img className="team-logo" src={r.team.logo} alt="" width={16} height={16} />}
               {r.team.name}
             </button>
           </li>
@@ -109,7 +110,9 @@ export default function PlayerCardModal({ playerId, onClose }) {
                     onClick={() => goToTeam(card.team, card.team.kind === "nfl" ? "pro" : "college")}
                     title={`Search ${card.team.name}`}
                   >
-                    {card.team.logo && <img src={card.team.logo} alt="" width={20} height={20} />}
+                    {card.team.logo && (
+                      <img className="player-card__team-logo" src={card.team.logo} alt="" width={32} height={32} />
+                    )}
                     <span>{card.team.name}</span>
                     {card.team.kind === "nfl" && (
                       <span className={`player-card__badge${card.teamIsCurrent ? "" : " player-card__badge--muted"}`}>
@@ -182,6 +185,9 @@ export default function PlayerCardModal({ playerId, onClose }) {
                       className="player-card__stat-value player-card__stat-link"
                       onClick={() => goToTeam(card.college, "college")}
                     >
+                      {card.college.logo && (
+                        <img className="team-logo" src={card.college.logo} alt="" width={16} height={16} />
+                      )}
                       {card.college.name}
                     </button>
                   ) : (
@@ -202,6 +208,9 @@ export default function PlayerCardModal({ playerId, onClose }) {
                           className="player-card__stat-link"
                           onClick={() => goToTeam(card.draft.team, "pro")}
                         >
+                          {card.draft.team.logo && (
+                            <img className="team-logo" src={card.draft.team.logo} alt="" width={16} height={16} />
+                          )}
                           {card.draft.team.abbreviation}
                         </button>
                         {")"}

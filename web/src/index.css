@@ -312,7 +312,9 @@ button {
 }
 
 .roster-panel__badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -672,6 +674,9 @@ button {
 }
 
 .player-card__stat-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   background: none;
   border: none;
   padding: 0;

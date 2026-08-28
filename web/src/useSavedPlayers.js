@@ -37,6 +37,7 @@ export function useSavedPlayers() {
           position: player.position,
           teamId: team.id,
           teamName: team.name,
+          teamLogo: team.logo ?? null,
           year,
         },
       ];

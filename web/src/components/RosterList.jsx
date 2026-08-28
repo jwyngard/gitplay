@@ -19,6 +19,7 @@ function PlayerRow({ p, selectedIds, onToggle, showTeamBadge, rowAction }) {
       {showTeamBadge && p.teamName && (
         <div className="roster-panel__badge-row">
           <span className="roster-panel__badge">
+            {p.teamLogo && <img className="team-logo" src={p.teamLogo} alt="" width={16} height={16} />}
             {p.teamName}{p.year ? ` · ${p.year}` : ""}
           </span>
         </div>
