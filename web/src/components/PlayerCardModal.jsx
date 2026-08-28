@@ -111,13 +111,13 @@ export default function PlayerCardModal({ playerId, onClose }) {
                     title={`Search ${card.team.name}`}
                   >
                     {card.team.kind !== "nfl" && card.team.logo && (
-                      <img className="player-card__team-logo" src={card.team.logo} alt="" width={40} height={40} />
+                      <img className="player-card__team-logo" src={card.team.logo} alt="" width={84} height={84} />
                     )}
                     <span>{card.team.name}</span>
                     {card.team.kind === "nfl" && (
                       <span className="player-card__team-status">
                         {card.team.logo && (
-                          <img className="player-card__team-logo" src={card.team.logo} alt="" width={40} height={40} />
+                          <img className="player-card__team-logo" src={card.team.logo} alt="" width={84} height={84} />
                         )}
                         <span className={`player-card__badge${card.teamIsCurrent ? "" : " player-card__badge--muted"}`}>
                           {card.teamIsCurrent ? "Current" : "Last known"}
