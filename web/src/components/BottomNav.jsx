@@ -1,3 +1,7 @@
+import { useEffect, useState } from "react";
+import { Capacitor } from "@capacitor/core";
+import { Keyboard } from "@capacitor/keyboard";
+
 const ICONS = {
   search: (
     <>
@@ -49,6 +53,32 @@ function Tab({ active, icon, label, count, onClick }) {
 }
 
 export default function BottomNav({ view, onChange, rosterCount, gamesCount }) {
+  const [hiddenForKeyboard, setHiddenForKeyboard] = useState(false);
+
+  // This nav is `position: fixed` to the bottom of the *visible* viewport --
+  // now that the Keyboard plugin resizes the webview above the on-screen
+  // keyboard, that viewport bottom moves up while the keyboard is open,
+  // landing this bar in the middle of whatever's open above it (e.g. the
+  // team-search dropdown) instead of the real bottom of the screen. Get out
+  // of the way while the keyboard is up, same as most apps hide their tab
+  // bar during text entry.
+  //
+  // Guarded to native only -- unlike most Capacitor plugins, this one's web
+  // implementation doesn't no-op, it throws ("Keyboard plugin is not
+  // implemented on web"), which would otherwise break the plain web build
+  // deployed on Render, not just the packaged iOS app.
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    const showSub = Keyboard.addListener("keyboardWillShow", () => setHiddenForKeyboard(true));
+    const hideSub = Keyboard.addListener("keyboardWillHide", () => setHiddenForKeyboard(false));
+    return () => {
+      showSub.then((s) => s.remove());
+      hideSub.then((s) => s.remove());
+    };
+  }, []);
+
+  if (hiddenForKeyboard) return null;
+
   return (
     <nav className="bottom-nav">
       <Tab active={view === "search"} icon="search" label="Search Teams" onClick={() => onChange("search")} />
