@@ -1,4 +1,5 @@
 import PlayerLink from "./PlayerLink.jsx";
+import { useSavedPlayersContext } from "../SavedPlayersContext.jsx";
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
   weekday: "short",
@@ -8,14 +9,31 @@ const dateFormatter = new Intl.DateTimeFormat(undefined, {
   minute: "2-digit",
 });
 
-function AlumniList({ label, players }) {
+function TeamLogo({ logo, alt }) {
+  if (!logo) return null;
+  return <img className="team-logo" src={logo} alt={alt} width={18} height={18} />;
+}
+
+function SavedStar({ saved }) {
+  if (!saved) return null;
+  return (
+    <span className="game-card__saved-star" title="On My Roster">
+      ★
+    </span>
+  );
+}
+
+function AlumniList({ label, logo, players, isSaved }) {
   if (!players.length) return null;
   return (
     <div className="game-card__side">
-      <strong>{label}</strong>
+      <strong>
+        <TeamLogo logo={logo} alt="" /> {label}
+      </strong>
       <ul>
         {players.map((p) => (
           <li key={p.id}>
+            <SavedStar saved={isSaved(p.id)} />
             <PlayerLink id={p.id} name={p.name} />{" "}
             <span className="game-card__pos">{p.nfl.position}</span>
             {p.nfl.injuryStatus ? (
@@ -34,6 +52,7 @@ function AlumniList({ label, players }) {
 
 export default function ResultsPanel({ data }) {
   const { week, rosterSize, consideredPlayers, alumniCount, recommendations, byeAlumni, allCompleted } = data;
+  const { isSaved } = useSavedPlayersContext();
 
   return (
     <div className="results-panel">
@@ -56,7 +75,9 @@ export default function ResultsPanel({ data }) {
           <strong>On a bye this week:</strong>{" "}
           {byeAlumni.map((p, i) => (
             <span key={p.id}>
-              <PlayerLink id={p.id} name={p.name} /> ({p.nfl.team.abbreviation})
+              <SavedStar saved={isSaved(p.id)} />
+              <PlayerLink id={p.id} name={p.name} /> (<TeamLogo logo={p.nfl.team.logo} alt="" />{" "}
+              {p.nfl.team.abbreviation})
               {i < byeAlumni.length - 1 ? ", " : ""}
             </span>
           ))}
@@ -72,7 +93,10 @@ export default function ResultsPanel({ data }) {
           {recommendations.map(({ game, homeAlumni, awayAlumni, totalAlumni }) => (
             <li key={game.id} className="game-card">
               <div className="game-card__header">
-                <span className="game-card__matchup">{game.shortName}</span>
+                <span className="game-card__matchup">
+                  <TeamLogo logo={game.away.logo} alt="" /> {game.away.abbreviation} @{" "}
+                  <TeamLogo logo={game.home.logo} alt="" /> {game.home.abbreviation}
+                </span>
                 <span className="game-card__count">
                   {totalAlumni} alum{totalAlumni === 1 ? "" : "i"}
                 </span>
@@ -91,8 +115,18 @@ export default function ResultsPanel({ data }) {
                 )}
               </div>
               <div className="game-card__sides">
-                <AlumniList label={game.away.abbreviation} players={awayAlumni} />
-                <AlumniList label={game.home.abbreviation} players={homeAlumni} />
+                <AlumniList
+                  label={game.away.abbreviation}
+                  logo={game.away.logo}
+                  players={awayAlumni}
+                  isSaved={isSaved}
+                />
+                <AlumniList
+                  label={game.home.abbreviation}
+                  logo={game.home.logo}
+                  players={homeAlumni}
+                  isSaved={isSaved}
+                />
               </div>
             </li>
           ))}

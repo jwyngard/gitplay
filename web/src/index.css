@@ -503,6 +503,19 @@ button {
 .game-card__matchup {
   font-weight: 700;
   font-size: 1.05rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.team-logo {
+  vertical-align: middle;
+  object-fit: contain;
+}
+
+.game-card__saved-star {
+  color: #f0b429;
+  margin-right: 0.2rem;
 }
 
 .game-card__count {
@@ -529,7 +542,9 @@ button {
 }
 
 .game-card__side strong {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
   font-size: 0.78rem;
   color: var(--muted);
   margin-bottom: 0.25rem;

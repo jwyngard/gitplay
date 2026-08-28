@@ -543,12 +543,14 @@ function mapGames(events) {
         teamId: home.team.id,
         name: home.team.displayName,
         abbreviation: home.team.abbreviation,
+        logo: home.team.logo ?? null,
         score: home.score ?? null,
       },
       away: {
         teamId: away.team.id,
         name: away.team.displayName,
         abbreviation: away.team.abbreviation,
+        logo: away.team.logo ?? null,
         score: away.score ?? null,
       },
     };
