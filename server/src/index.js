@@ -11,6 +11,16 @@ import {
   getWeekGames,
   getPlayerCard,
 } from "./espnClient.js";
+import { verifyAppleIdentityToken, issueSessionToken, requireAuth } from "./auth.js";
+import {
+  getOrCreateUser,
+  getEntitlement,
+  listSavedPlayers,
+  savePlayerForUser,
+  removeSavedPlayerForUser,
+  importSavedPlayers,
+  RosterLimitError,
+} from "./accounts.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WEB_DIST = path.join(__dirname, "../../web/dist");
@@ -177,6 +187,84 @@ app.post("/api/alumni-lookup", async (req, res, next) => {
 
     const result = await buildRecommendations(players);
     res.json({ ...result, rosterSize: players.length });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---- Accounts / saved-roster (iOS app only -- see
+// docs/APP_STORE_AND_PAYWALL_PLAN.md). Requires DATABASE_URL and
+// SESSION_SECRET to be configured; on a deployment without those set,
+// these routes fail clearly per-request rather than the whole API
+// refusing to start. ----
+
+app.post("/api/auth/apple", async (req, res, next) => {
+  try {
+    const { identityToken } = req.body ?? {};
+    if (!identityToken) return res.status(400).json({ error: "identityToken is required" });
+
+    const { appleUserId, email } = await verifyAppleIdentityToken(identityToken);
+    const userId = await getOrCreateUser(appleUserId, email);
+    const sessionToken = await issueSessionToken(userId);
+    res.json({ sessionToken });
+  } catch (err) {
+    // A rejected/expired/tampered Apple token is a routine "login failed,"
+    // not a server error.
+    res.status(401).json({ error: "Could not verify Apple identity token" });
+  }
+});
+
+app.get("/api/entitlement", requireAuth, async (req, res, next) => {
+  try {
+    res.json(await getEntitlement(req.userId));
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.get("/api/saved-players", requireAuth, async (req, res, next) => {
+  try {
+    res.json(await listSavedPlayers(req.userId));
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.post("/api/saved-players", requireAuth, async (req, res, next) => {
+  try {
+    const { player, team, year } = req.body ?? {};
+    if (!player?.id || !player?.name) {
+      return res.status(400).json({ error: "player.id and player.name are required" });
+    }
+    await savePlayerForUser(req.userId, player, team, year);
+    res.json(await listSavedPlayers(req.userId));
+  } catch (err) {
+    if (err instanceof RosterLimitError) {
+      return res.status(402).json({ error: err.message, limit: err.limit });
+    }
+    next(err);
+  }
+});
+
+app.delete("/api/saved-players/:playerId", requireAuth, async (req, res, next) => {
+  try {
+    await removeSavedPlayerForUser(req.userId, req.params.playerId);
+    res.json(await listSavedPlayers(req.userId));
+  } catch (err) {
+    next(err);
+  }
+});
+
+// One-time migration of a pre-accounts localStorage roster -- see
+// docs/APP_STORE_AND_PAYWALL_PLAN.md section 7.
+app.post("/api/saved-players/import", requireAuth, async (req, res, next) => {
+  try {
+    const players = req.body?.players;
+    if (!Array.isArray(players)) {
+      return res.status(400).json({ error: "players (array) is required" });
+    }
+    const result = await importSavedPlayers(req.userId, players);
+    res.json({ ...result, savedPlayers: await listSavedPlayers(req.userId) });
   } catch (err) {
     next(err);
   }
