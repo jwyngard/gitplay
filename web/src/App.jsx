@@ -30,7 +30,19 @@ export default function App() {
   const [rosterError, setRosterError] = useState(null);
   const [selectedIds, setSelectedIds] = useState(new Set());
 
-  const { savedPlayers, isSaved, savePlayer, removePlayer } = useSavedPlayersContext();
+  const {
+    savedPlayers,
+    isSaved,
+    savePlayer,
+    removePlayer,
+    isNative,
+    isSignedIn,
+    signIn,
+    authError,
+    entitlement,
+    limitReached,
+    dismissLimitNotice,
+  } = useSavedPlayersContext();
   const [selectedSavedIds, setSelectedSavedIds] = useState(new Set());
 
   const { pendingTeamSearch, clearPendingTeamSearch } = useNavigation();
@@ -237,8 +249,40 @@ export default function App() {
         </>
       )}
 
-      {view === "saved" && (
+      {view === "saved" && isNative && !isSignedIn && (
         <section className="app__roster">
+          <div className="signin-gate">
+            <h3>Sign in to save your roster</h3>
+            <p>
+              Saving players syncs to your account — 3 free, or sign in and upgrade for an
+              unlimited roster.
+            </p>
+            <button type="button" className="app__find-button" onClick={signIn}>
+              Sign in with Apple
+            </button>
+            {authError && <p className="error">{authError}</p>}
+          </div>
+        </section>
+      )}
+
+      {view === "saved" && (!isNative || isSignedIn) && (
+        <section className="app__roster">
+          {isNative && (
+            <div className="entitlement-banner">
+              {entitlement?.tier === "unlimited"
+                ? "Unlimited roster"
+                : `${savedPlayers.length} of 3 free slots saved`}
+            </div>
+          )}
+          {limitReached && (
+            <div className="results-panel__notice">
+              You've saved 3 players — that's the free limit. Unlimited roster upgrades are
+              coming soon.{" "}
+              <button type="button" className="player-card__stat-link" onClick={dismissLimitNotice}>
+                Dismiss
+              </button>
+            </div>
+          )}
           <RosterList
             title={`My roster (${savedPlayers.length})`}
             players={savedPlayers}
