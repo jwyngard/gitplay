@@ -183,8 +183,20 @@ export async function getNflRosterIndex() {
   const nflTeams = await getNflTeams();
   const index = new Map();
 
+  // One team's roster failing (observed live: Arizona's roster endpoint
+  // returning a genuine, persistent 404 while every other team and the
+  // team list itself were fine) must not take down this index for the
+  // other 31 teams -- this is the shared cross-reference every alumni
+  // lookup depends on, so a single bad team previously meant "Find games
+  // to watch" was broken for everyone, not just players on that team.
   await mapWithConcurrency(Array.from(nflTeams.values()), 10, async (team) => {
-    const players = await getNflTeamRosterRaw(team.id);
+    let players;
+    try {
+      players = await getNflTeamRosterRaw(team.id);
+    } catch (err) {
+      console.warn(`getNflRosterIndex: skipping ${team.name} (${team.id}):`, err.message);
+      return;
+    }
     for (const { id, position, jersey, status, statusName, injuryStatus } of players) {
       index.set(id, { team, position, jersey, status, statusName, injuryStatus });
     }
