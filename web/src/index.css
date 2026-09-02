@@ -22,9 +22,17 @@ body {
 .app {
   max-width: 720px;
   margin: 0 auto;
-  /* Extra bottom padding so the last row of content clears the fixed
-     bottom-nav pill instead of hiding behind it. */
-  padding: 2rem 1.25rem 6.5rem;
+  /* Top padding is deliberately generous, not just "clears the safe area."
+     contentInset: automatic (capacitor.config.json) already pushes content
+     below the exact hardware boundary around the camera/Dynamic Island --
+     but "exact boundary" still reads as uncomfortably tight in practice,
+     confirmed against a real device photo next to a native app (NYT) for
+     comparison: NYT leaves a large visual buffer below the status bar,
+     this app had almost none. This padding is the buffer on top of what
+     contentInset already guarantees, not a substitute for it.
+     Bottom padding clears the fixed bottom-nav pill instead of hiding
+     behind it. */
+  padding: 4rem 1.25rem 6.5rem;
 }
 
 .app__header h1 {
