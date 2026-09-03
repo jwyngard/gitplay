@@ -21,9 +21,10 @@ const USER_ID_KEY = "alumniWatch.userId";
 const REVENUECAT_API_KEY = import.meta.env.VITE_REVENUECAT_API_KEY;
 
 // The RevenueCat entitlement identifier (set up in the RevenueCat
-// dashboard) that unlocks an unlimited roster -- must be named exactly this
-// there, to match the "unlimited" tier name accounts.js already uses.
-const UNLIMITED_ENTITLEMENT = "unlimited";
+// dashboard) that unlocks an unlimited roster. Named "alumni_watch_pro"
+// there -- this just has to match, independent of the "unlimited" tier
+// name accounts.js uses for its own, unrelated free/unlimited column.
+const UNLIMITED_ENTITLEMENT = "alumni_watch_pro";
 
 // clientId/redirectURI are required by this plugin's TypeScript signature,
 // but only matter for its web/Android OAuth-redirect fallback. The actual
