@@ -4,6 +4,7 @@ import PlayerSearch from "./components/PlayerSearch.jsx";
 import RosterList from "./components/RosterList.jsx";
 import ResultsPanel from "./components/ResultsPanel.jsx";
 import BottomNav from "./components/BottomNav.jsx";
+import PaywallNotice from "./components/PaywallNotice.jsx";
 import {
   getCollegeTeams,
   getProTeams,
@@ -41,12 +42,6 @@ export default function App() {
     signIn,
     authError,
     entitlement,
-    limitReached,
-    dismissLimitNotice,
-    purchaseUnlimited,
-    restorePurchases,
-    purchasing,
-    purchaseError,
   } = useSavedPlayersContext();
   const [selectedSavedIds, setSelectedSavedIds] = useState(new Set());
 
@@ -278,28 +273,7 @@ export default function App() {
                 : `${savedPlayers.length} of 3 free slots saved`}
             </div>
           )}
-          {limitReached && (
-            <div className="results-panel__notice paywall">
-              <p>You've saved 3 players — that's the free limit. Go unlimited to add more.</p>
-              {purchaseError && <p className="error">{purchaseError}</p>}
-              <div className="paywall__actions">
-                <button
-                  type="button"
-                  className="app__find-button"
-                  disabled={purchasing}
-                  onClick={purchaseUnlimited}
-                >
-                  {purchasing ? "Processing…" : "Go unlimited"}
-                </button>
-                <button type="button" className="player-card__stat-link" onClick={restorePurchases}>
-                  Restore purchase
-                </button>
-                <button type="button" className="player-card__stat-link" onClick={dismissLimitNotice}>
-                  Not now
-                </button>
-              </div>
-            </div>
-          )}
+          <PaywallNotice />
           <RosterList
             title={`My roster (${savedPlayers.length})`}
             players={savedPlayers}

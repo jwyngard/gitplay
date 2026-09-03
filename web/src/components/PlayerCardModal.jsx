@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getPlayerCard } from "../api.js";
 import { useSavedPlayersContext } from "../SavedPlayersContext.jsx";
 import { useNavigation } from "../NavigationContext.jsx";
+import PaywallNotice from "./PaywallNotice.jsx";
 
 // The card's `team.kind`/`college` come back as "nfl"/"college" from the
 // backend; the team picker elsewhere in the app tags NFL teams "pro"
@@ -145,6 +146,8 @@ export default function PlayerCardModal({ playerId, onClose }) {
                 {isSaved(card.id) ? "★ Saved to My Roster" : "☆ Save to My Roster"}
               </button>
             )}
+
+            <PaywallNotice />
 
             {card.seasonStats && (
               <div className="player-card__season">
