@@ -84,6 +84,13 @@ input[type="number"] {
   flex: 1 1 220px;
 }
 
+/* No inner max-height/scroll here on purpose -- the list is already capped
+   to 8 matches (TeamPicker.jsx), so it has a bounded natural height. A
+   nested scrollbox this small, squeezed against the on-screen keyboard,
+   was hard to use on a touchscreen (reported live: took 3+ swipes to reach
+   a match near the bottom). Letting it grow to its full height and
+   relying on the page's own normal scroll instead turns that into one
+   ordinary scroll gesture. */
 .team-picker__matches {
   list-style: none;
   margin: 0.25rem 0 0;
@@ -96,8 +103,6 @@ input[type="number"] {
   border: 1px solid var(--border);
   border-radius: 8px;
   z-index: 10;
-  max-height: 260px;
-  overflow-y: auto;
 }
 
 .team-picker__matches button {
