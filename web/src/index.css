@@ -84,6 +84,66 @@ input[type="number"] {
   flex: 1 1 220px;
 }
 
+.player-search {
+  margin-top: 1rem;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.25rem;
+}
+
+/* Static, in normal document flow (not an absolute overlay) -- pushes
+   whatever's below it down instead, so there's never a nested scrollbox
+   to fight with, same lesson learned from the team-search dropdown. */
+.player-search__matches {
+  list-style: none;
+  margin: 0.6rem 0 0;
+  padding: 0;
+}
+
+.player-search__matches button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  color: var(--text);
+  text-align: left;
+  padding: 0.5rem 0.25rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.player-search__matches li:last-child button {
+  border-bottom: none;
+}
+
+.player-search__matches button:hover {
+  background: #1c2028;
+}
+
+.player-search__name {
+  font-weight: 600;
+}
+
+.player-search__team {
+  flex: 1 1 auto;
+  color: var(--muted);
+  font-size: 0.82rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.player-search__status {
+  margin: 0.6rem 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
 /* No inner max-height/scroll here on purpose -- the list is already capped
    to 8 matches (TeamPicker.jsx), so it has a bounded natural height. A
    nested scrollbox this small, squeezed against the on-screen keyboard,

@@ -10,6 +10,7 @@ import {
   getAlumniForPlayers,
   getWeekGames,
   getPlayerCard,
+  searchPlayers,
 } from "./espnClient.js";
 import { verifyAppleIdentityToken, issueSessionToken, requireAuth } from "./auth.js";
 import {
@@ -136,6 +137,16 @@ app.get("/api/pro-roster", async (req, res, next) => {
     }
     const players = await getNflTeamRoster(teamId);
     res.json({ teamId, players });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.get("/api/player-search", async (req, res, next) => {
+  try {
+    const q = req.query.q;
+    if (!q || !q.trim()) return res.json([]);
+    res.json(await searchPlayers(q.trim()));
   } catch (err) {
     next(err);
   }

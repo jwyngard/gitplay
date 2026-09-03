@@ -48,6 +48,10 @@ export function getPlayerCard(id) {
   return request(`/api/player/${id}`);
 }
 
+export function searchPlayers(query) {
+  return request(`/api/player-search?q=${encodeURIComponent(query)}`);
+}
+
 export function getRecommendations(teamId, year, playerIds) {
   const params = new URLSearchParams({ teamId, year });
   if (playerIds && playerIds.length) params.set("playerIds", playerIds.join(","));

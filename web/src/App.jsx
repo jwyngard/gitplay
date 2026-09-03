@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import TeamPicker from "./components/TeamPicker.jsx";
+import PlayerSearch from "./components/PlayerSearch.jsx";
 import RosterList from "./components/RosterList.jsx";
 import ResultsPanel from "./components/ResultsPanel.jsx";
 import BottomNav from "./components/BottomNav.jsx";
@@ -173,10 +174,7 @@ export default function App() {
     <div className="app">
       <header className="app__header">
         <h1>Alumni Watch</h1>
-        <p>
-          Pick a college team and season — or browse an NFL team's current roster directly —
-          then see which of this week's games are worth watching.
-        </p>
+        <p>Find your alumni.</p>
       </header>
 
       {view === "search" && (
@@ -211,6 +209,8 @@ export default function App() {
               {rosterLoading ? "Loading roster…" : "Load roster"}
             </button>
           </section>
+
+          <PlayerSearch />
 
           {rosterError && <p className="error">Couldn't load roster: {rosterError}</p>}
 

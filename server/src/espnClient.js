@@ -7,6 +7,9 @@
 
 const SITE_BASE = "https://site.api.espn.com/apis/site/v2/sports/football";
 const CORE_BASE = "https://sports.core.api.espn.com/v2/sports/football/leagues";
+// A third API family -- ESPN's general site search, spanning every sport.
+// Used only for "search by player name," and filtered down to football.
+const SEARCH_BASE = "https://site.api.espn.com/apis/search/v2";
 
 // Retries after a short backoff -- ESPN's public API has shown transient
 // (non-404) failures that clear up within a request or two (observed live
@@ -614,4 +617,27 @@ export async function getWeekGames() {
   const byeTeams = Array.from(nflTeams.values()).filter((t) => !playingTeamIds.has(t.id));
 
   return { week: data.week ?? null, games, byeTeams, allCompleted };
+}
+
+// Search by player name across ESPN's whole site, filtered down to
+// football. The search API is sport-agnostic (a "smith" query returns
+// WNBA/MLB players too), so results are kept only when their uid matches
+// football's sport id (20) and either the NFL or college-football league
+// id -- everything else (other sports, articles, video clips the same
+// endpoint also returns) is dropped.
+export async function searchPlayers(query) {
+  const data = await getJson(`${SEARCH_BASE}?query=${encodeURIComponent(query)}&limit=10`);
+  const group = data.results?.find((g) => g.type === "player");
+  if (!group) return [];
+
+  return (group.contents ?? [])
+    .map((p) => {
+      const match = p.uid?.match(/^s:20~l:(\d+)~a:(\d+)$/);
+      if (!match) return null;
+      const [, leagueId, athleteId] = match;
+      const level = leagueId === "28" ? "nfl" : leagueId === "23" ? "college" : null;
+      if (!level) return null;
+      return { id: athleteId, name: p.displayName, team: p.subtitle ?? null, level };
+    })
+    .filter(Boolean);
 }
