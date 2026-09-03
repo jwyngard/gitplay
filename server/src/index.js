@@ -26,6 +26,7 @@ import {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WEB_DIST = path.join(__dirname, "../../web/dist");
+const PUBLIC_DIR = path.join(__dirname, "../public");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -344,6 +345,11 @@ app.use((err, req, res, next) => {
     error: err.message || "Internal server error",
   });
 });
+
+// Static legal/support pages -- given a stable URL for App Store Connect's
+// privacy policy and support URL fields, independent of the SPA's own
+// client-side routing.
+app.use(express.static(PUBLIC_DIR));
 
 // Serve the built frontend (if present) so this single server can host
 // both the API and the app in production/deployment.

@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "build:capacitor": "vite build --mode capacitor",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "generate:assets": "capacitor-assets generate --iconBackgroundColor '#0a0c11' --iconBackgroundColorDark '#0a0c11' --splashBackgroundColor '#0a0c11' --splashBackgroundColorDark '#0a0c11'"
   },
   "dependencies": {
     "@capacitor-community/apple-sign-in": "^7.1.0",
@@ -19,6 +20,7 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.5.0",
     "@vitejs/plugin-react": "^4.3.4",
     "vite": "^6.0.5"
