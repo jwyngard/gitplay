@@ -20,6 +20,7 @@ import {
   savePlayerForUser,
   removeSavedPlayerForUser,
   importSavedPlayers,
+  setEntitlementTier,
   RosterLimitError,
 } from "./accounts.js";
 
@@ -217,7 +218,11 @@ app.post("/api/auth/apple", async (req, res, next) => {
     const { appleUserId, email } = await verifyAppleIdentityToken(identityToken);
     const userId = await getOrCreateUser(appleUserId, email);
     const sessionToken = await issueSessionToken(userId);
-    res.json({ sessionToken });
+    // The client needs its own numeric userId (not just the opaque session
+    // token) to hand to Purchases.configure()/logIn() -- RevenueCat's
+    // app_user_id has to match this exactly, since the webhook below maps
+    // straight back from RevenueCat's app_user_id to this id.
+    res.json({ sessionToken, userId });
   } catch (err) {
     // A rejected/expired/tampered Apple token is a routine "login failed,"
     // not a server error.
@@ -276,6 +281,58 @@ app.post("/api/saved-players/import", requireAuth, async (req, res, next) => {
     }
     const result = await importSavedPlayers(req.userId, players);
     res.json({ ...result, savedPlayers: await listSavedPlayers(req.userId) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// RevenueCat's cancellation event means auto-renew was turned off, not
+// that access ended -- Apple still grants access through the paid-through
+// date, and RevenueCat sends a separate EXPIRATION event when that date
+// actually arrives. Same idea for a billing issue: Apple/RevenueCat keep
+// the subscriber entitled during the retry/grace window. Only EXPIRATION
+// (or an explicit downgrade-style event) actually removes the unlimited
+// tier.
+const REVENUECAT_EVENT_TIER = {
+  INITIAL_PURCHASE: "unlimited",
+  RENEWAL: "unlimited",
+  UNCANCELLATION: "unlimited",
+  PRODUCT_CHANGE: "unlimited",
+  CANCELLATION: "unlimited",
+  BILLING_ISSUE: "unlimited",
+  EXPIRATION: "free",
+};
+
+// RevenueCat sends this exact Authorization header value (configured in
+// its dashboard) with every webhook call -- a shared secret, not a
+// cryptographic signature. Not validated for exact field names against a
+// live payload yet (docs.revenuecat.com isn't reachable from this
+// environment); verify with RevenueCat's dashboard "send test event"
+// button once the project exists, per this app's habit of confirming
+// against real data rather than assuming.
+app.post("/api/webhooks/revenuecat", async (req, res, next) => {
+  try {
+    if (!process.env.REVENUECAT_WEBHOOK_SECRET || req.headers.authorization !== process.env.REVENUECAT_WEBHOOK_SECRET) {
+      return res.status(401).json({ error: "Invalid webhook authorization" });
+    }
+
+    const event = req.body?.event;
+    if (!event?.app_user_id || !event?.type) {
+      return res.status(400).json({ error: "Malformed webhook payload" });
+    }
+
+    // Purchases.logIn(userId) (useAccountRoster.js) makes RevenueCat's
+    // app_user_id our own numeric user id as a string -- anything else
+    // (RevenueCat's own auto-generated anonymous id, from a purchase made
+    // before login) isn't one of our users, so there's nothing to update.
+    const userId = Number(event.app_user_id);
+    const tier = REVENUECAT_EVENT_TIER[event.type];
+    if (!Number.isNaN(userId) && tier) {
+      const renewsAt = event.expiration_at_ms ? new Date(event.expiration_at_ms) : null;
+      await setEntitlementTier(userId, tier, event.app_user_id, renewsAt);
+    }
+
+    res.json({ ok: true });
   } catch (err) {
     next(err);
   }

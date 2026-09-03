@@ -26,6 +26,21 @@ export async function getOrCreateUser(appleUserId, email) {
   return userId;
 }
 
+// Called from the RevenueCat webhook (index.js) whenever a purchase,
+// renewal, cancellation, or expiration happens. `revenuecatId` is
+// RevenueCat's own app_user_id for this customer -- since the app calls
+// Purchases.logIn(userId) right after Sign in with Apple, this is
+// normally just our own user id as a string, but stored anyway for an
+// audit trail in case that ever isn't true (e.g. a purchase made before
+// login somehow got linked differently).
+export async function setEntitlementTier(userId, tier, revenuecatId, renewsAt) {
+  await query(
+    `UPDATE entitlements SET tier = $2, revenuecat_id = $3, renews_at = $4, updated_at = now()
+     WHERE user_id = $1`,
+    [userId, tier, revenuecatId ?? null, renewsAt ?? null]
+  );
+}
+
 export async function getEntitlement(userId) {
   const { rows } = await query(
     "SELECT tier, renews_at FROM entitlements WHERE user_id = $1",

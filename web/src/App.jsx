@@ -43,6 +43,10 @@ export default function App() {
     entitlement,
     limitReached,
     dismissLimitNotice,
+    purchaseUnlimited,
+    restorePurchases,
+    purchasing,
+    purchaseError,
   } = useSavedPlayersContext();
   const [selectedSavedIds, setSelectedSavedIds] = useState(new Set());
 
@@ -275,12 +279,25 @@ export default function App() {
             </div>
           )}
           {limitReached && (
-            <div className="results-panel__notice">
-              You've saved 3 players — that's the free limit. Unlimited roster upgrades are
-              coming soon.{" "}
-              <button type="button" className="player-card__stat-link" onClick={dismissLimitNotice}>
-                Dismiss
-              </button>
+            <div className="results-panel__notice paywall">
+              <p>You've saved 3 players — that's the free limit. Go unlimited to add more.</p>
+              {purchaseError && <p className="error">{purchaseError}</p>}
+              <div className="paywall__actions">
+                <button
+                  type="button"
+                  className="app__find-button"
+                  disabled={purchasing}
+                  onClick={purchaseUnlimited}
+                >
+                  {purchasing ? "Processing…" : "Go unlimited"}
+                </button>
+                <button type="button" className="player-card__stat-link" onClick={restorePurchases}>
+                  Restore purchase
+                </button>
+                <button type="button" className="player-card__stat-link" onClick={dismissLimitNotice}>
+                  Not now
+                </button>
+              </div>
             </div>
           )}
           <RosterList
