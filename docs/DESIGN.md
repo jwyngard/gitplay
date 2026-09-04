@@ -177,6 +177,13 @@ endpoint returns, without needing to know which tab produced it.
 
 ## 7. Persistence: why localStorage, not a backend database
 
+This section describes the **web build only**. The native iOS app has
+since grown real accounts and a real Postgres-backed roster (Sign in with
+Apple + a free/paid save limit) — see
+`docs/APP_STORE_AND_PAYWALL_PLAN.md` for that design. The reasoning below
+is why the web build deliberately stayed on localStorage rather than
+getting the same treatment.
+
 The "My Roster" feature (save players across different team searches, come
 back to them later without re-searching) needs *something* to persist
 across visits. That storage was deliberately put in the browser
@@ -188,11 +195,12 @@ persistence in a dev session and then quietly lost data in production.
 localStorage, despite being "just the browser," is actually the more
 durable option available without adding real infrastructure.
 
-The trade-off is explicit and worth stating: saved players are scoped to one
-browser on one device. There's no login system, so there's no concept of
-"your" roster across devices. Making that sync would mean adding real
-accounts and a real database — a deliberate scope line, not an oversight
-(see [§9](#9-known-limitations)).
+The trade-off is explicit and worth stating: saved players on the web
+build are scoped to one browser on one device, with no login and no
+cross-device sync — a deliberate scope line for the free web experience,
+not an oversight. (The native app's answer to the same trade-off is
+covered in the paywall plan doc — real accounts, at the cost of being an
+iOS-only, sign-in-gated feature there.)
 
 ## 8. Deployment
 
@@ -237,7 +245,7 @@ Apple's platform requirement, not something this repo can work around).
 
 ## 9. Known limitations
 
-- **No accounts / no cross-device sync** — see [§7](#7-persistence-why-localstorage-not-a-backend-database).
+- **No accounts / no cross-device sync on the web build** — see [§7](#7-persistence-why-localstorage-not-a-backend-database). The native iOS app has this now (`docs/APP_STORE_AND_PAYWALL_PLAN.md`); the web build deliberately doesn't.
 - **No validation on year vs. team existence** — asking for a team's roster
   in a year before the program existed (or after) just returns an empty
   roster rather than a helpful error.
@@ -254,8 +262,9 @@ Apple's platform requirement, not something this repo can work around).
 
 ## 10. Possible future work
 
-- Real accounts + a database, if cross-device sync for "My Roster" becomes
-  worth the added infrastructure.
+- Bring the web build's "My Roster" onto real accounts too, if cross-device
+  sync for the free web experience becomes worth the added infrastructure
+  (the native app already has this — see §7).
 - Extend beyond NFL/college football to other league/feeder pairs the same
   athlete-ID-sharing trick might work for.
 - Surface each alum's snap counts / recent usage, not just "on the roster,"

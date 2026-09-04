@@ -23,10 +23,22 @@ from.
   rather than calling a function directly (same shape as the earlier
   `SavedPlayersContext` fix). Also required adding `id` to the card's
   `college` field, which had been name+logo only.
+- **[Shipped] Search players by name directly**, instead of only reaching a
+  card via a team roster. `GET /api/player-search` wraps ESPN's general,
+  sport-agnostic site search (`site.api.espn.com/apis/search/v2`), filtered
+  down to football by matching each result's `uid` pattern
+  (`s:20~l:23~a:<id>` for college, `s:20~l:28~a:<id>` for NFL) — the same
+  athlete-id space this whole app already relies on, just reached through a
+  different ESPN endpoint. `PlayerSearch.jsx` debounces input and opens
+  straight into the existing player-card modal.
 - **Shareable link to a specific player's card.** Would need real client-side
   routing (e.g. `/player/:id`) instead of modal-only state, since right now
   a card only exists as transient UI state with no URL. Bigger lift than it
-  sounds for a single-page app with no router yet.
+  sounds for a single-page app with no router yet. Raised again alongside
+  the paywall work — if this ships, a shared link should route a
+  non-app-user through the App Store rather than a free web fallback, once
+  the paywall exists (see `docs/APP_STORE_AND_PAYWALL_PLAN.md`). Not
+  started.
 
 ## Schedule & recommendations
 

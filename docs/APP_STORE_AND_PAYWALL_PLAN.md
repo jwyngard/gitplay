@@ -2,15 +2,19 @@
 
 ## 1. What this covers
 
-A plan to take Alumni Watch from "sideloaded onto one phone via Xcode, no
-accounts, no persistence beyond localStorage" to a real App Store release
-with a free/paid split: **3 saved players free, unlimited on a paid
-subscription.**
+The plan — now built — for taking Alumni Watch from "sideloaded onto one
+phone via Xcode, no accounts, no persistence beyond localStorage" to a real
+App Store release with a free/paid split: **3 saved players free,
+unlimited on a paid subscription.**
 
-This is a genuinely large jump from where the app is today (see
-`docs/DESIGN.md` for the current architecture) — it adds three subsystems
-that don't exist at all right now: accounts, a real database, and payments.
-Nothing here is started yet; this is the plan to build from.
+**Status: built and submitted.** Every subsystem below (accounts, Postgres,
+Sign in with Apple, RevenueCat/StoreKit) exists in the codebase and is live
+against a real App Store Connect app record and a real RevenueCat project.
+This doc is kept as the design record (why each decision was made) rather
+than rewritten as a pure status report — treat it as accurate for *intent*;
+see `CLAUDE.md` for a terser "what actually exists today" summary and the
+handful of naming/gotcha details (e.g. the RevenueCat entitlement
+identifier vs. the `tier` column) worth knowing before touching this code.
 
 ## 2. Why this is bigger than it sounds
 
@@ -57,7 +61,7 @@ the paid tier (~$7-19/mo).
 |---|---|---|
 | `users` | `id`, `apple_user_id` (unique), `email` (Apple's relay email, nullable), `created_at` | One row per Sign in with Apple identity. No password to store. |
 | `saved_players` | `id`, `user_id`, `player_id`, `player_name`, `position`, `team_id`, `team_name`, `team_logo`, `year`, `saved_at` | Replaces the `useSavedPlayers.js` localStorage array — same fields, now server-side and user-scoped. |
-| `entitlements` | `user_id`, `tier` (`free`\|`unlimited`), `revenuecat_id`, `renews_at`, `updated_at` | Updated by the RevenueCat webhook on purchase/renewal/cancellation/refund. |
+| `entitlements` | `user_id`, `tier` (`free`\|`unlimited`), `revenuecat_id`, `renews_at`, `updated_at` | Updated by the RevenueCat webhook on purchase/renewal/cancellation/refund. `tier` is this app's own internal name and is unrelated to the RevenueCat *entitlement identifier* configured in their dashboard (`alumni_watch_pro`) — don't assume the two should match, they're two different systems' vocabulary for the same underlying fact. |
 
 The free/paid check is one query on every save attempt:
 
@@ -91,54 +95,70 @@ API call.
 
 ## 6. Paywall: RevenueCat + StoreKit
 
-- One subscription product in App Store Connect (e.g. "Unlimited Roster,"
-  ~$2.99/mo — exact price is a business decision, trivially changed later
-  in App Store Connect without touching code).
-- RevenueCat's Capacitor SDK wraps the native purchase flow — the app never
-  talks to StoreKit directly.
-- A paywall screen appears when a free user hits the 3-player limit:
-  purchase button, price, and a **Restore Purchases** button (Apple
-  requires this exact affordance — its absence is a common rejection
-  reason).
-- RevenueCat calls our webhook on every entitlement change (new purchase,
-  renewal, cancellation, refund, billing-issue grace period); the webhook
-  handler updates the `entitlements` row. The API's save-check always reads
-  from that table, never from anything the client asserts about itself.
+- One subscription product in App Store Connect: "Unlimited Roster
+  Monthly," product id `com.alumniwatch.app.unlimited`, $2.99/mo, in a
+  subscription group named "Alumni Watch Pro."
+- RevenueCat's Capacitor SDK (`@revenuecat/purchases-capacitor`) wraps the
+  native purchase flow — the app never talks to StoreKit directly.
+  `Purchases.configure()`/`logIn(userId)` happen in
+  `web/src/useAccountRoster.js` right after Sign in with Apple succeeds (or
+  on relaunch, for a restored session), using this app's own numeric user
+  id as RevenueCat's `app_user_id` — that's what lets the webhook (below)
+  map an event straight back to a user with no separate identity table.
+- `PaywallNotice.jsx` is the paywall UI: purchase button, price (pulled
+  from `Purchases.getOfferings()`, not hardcoded), and a **Restore
+  Purchases** button (Apple requires this exact affordance — its absence
+  is a common rejection reason). It's a shared component rendered from
+  both the My Roster tab and the player card's own Save button, since
+  either one can trigger the limit.
+- RevenueCat calls `POST /api/webhooks/revenuecat` on every entitlement
+  change (new purchase, renewal, cancellation, refund, billing-issue grace
+  period); the handler updates the `entitlements` row keyed by that numeric
+  user id. The API's save-check always reads from that table, never from
+  anything the client asserts about itself. The RevenueCat-side entitlement
+  identifier is `alumni_watch_pro` — see the note in §4.
+- A real gotcha hit during first submission, worth remembering for any
+  future subscription/IAP added to this app: a brand-new app's *first*
+  auto-renewable subscription must be submitted to Apple together with an
+  actual app build — it sits in "Prepare for Submission" indefinitely
+  otherwise, even once every one of its own fields is filled in correctly.
 
-## 7. Migrating existing local rosters
+## 7. Migrating existing local rosters — built
 
-Right now every saved roster lives only in one browser's localStorage on
-one device. Recommended: on first Sign in with Apple, if localStorage has a
-saved-players array, POST it once to a `/api/saved-players/import` endpoint
-that inserts anything not already present (respecting the free-tier limit —
-if someone already saved 8 players locally before accounts existed, import
-the first 3 and surface the rest as "these need Unlimited Roster to
-restore"). This is a nice-to-have, not a hard blocker — the alternative is
-just accepting that switching to accounts is a clean-slate reset — but it's
-cheap enough to build that it's worth doing.
+`POST /api/saved-players/import` (backed by `importSavedPlayers()` in
+`accounts.js`) inserts anything not already present, respecting the
+free-tier limit — reporting `{imported, skipped}` rather than failing the
+whole batch if someone had more than 3 players saved locally before
+accounts existed. `SavedPlayersContext.jsx` calls it once, automatically,
+right after a successful native sign-in.
 
-## 8. App Store submission checklist
+## 8. App Store submission checklist — done, submitted
 
-Separate from the engineering above — mostly one-time admin work:
-
-- Apple Developer Program enrollment ($99/year — the fee this whole project
-  originally set out to avoid before deciding to actually ship).
-- Real app icon (currently only a headshot placeholder SVG exists anywhere
-  in the app) — needs a 1024×1024 source image, Xcode generates the rest.
-- Screenshots across the required device sizes.
-- A real privacy policy page — non-optional once the app has accounts and
-  payments, and needs to accurately describe what's collected (Apple ID
-  relay email, saved-player data, subscription status via RevenueCat).
-- Age rating questionnaire.
-- Subscription terms displayed per App Store Review Guideline 3.1.2
-  (RevenueCat's paywall templates handle this correctly out of the box).
-- A TestFlight beta pass is worth doing before public submission — catches
-  the kind of Xcode-signing gotchas already hit once in this project.
-- One honest risk to flag: Apple reviewers occasionally scrutinize apps
-  built on unofficial/scraped data sources (ESPN's public API isn't an
-  official partner integration). Usually survivable, but not a zero-risk
-  line item, and not something fixable in advance — it's a review-time
-  judgment call.
+- Apple Developer Program enrollment — done.
+- App icon (`web/resources/icon.png`) and launch screen
+  (`web/resources/splash.png`) — done; `npm run generate:assets`
+  (`@capacitor/assets`) regenerates every Xcode-required size from those
+  two source files.
+- Screenshots (iPhone 6.5"/6.7" + 13" iPad, plus a dedicated subscription
+  review screenshot) — done. Apple's exact required pixel dimensions for
+  these are worth re-checking against current docs each time, rather than
+  reusing a size that was correct previously — they've changed before.
+- Privacy policy (`server/public/privacy.html`) and support page
+  (`server/public/support.html`) — done, served directly by the Express
+  app at `/privacy.html` and `/support.html` so they have stable URLs
+  independent of the SPA's own routing. Content matches what's actually
+  declared in App Store Connect's App Privacy questionnaire (Identifiers,
+  Contact Info, User Content, Purchases — all "App Functionality," none
+  "used to track").
+- Age rating questionnaire — answered, landed at 4+.
+- Subscription terms/Restore Purchases — done, see §6.
+- Content Rights declaration — answered "yes, contains third-party content
+  (ESPN's public sports data/logos), have the necessary rights/basis to
+  use it" — a judgment call, not a guaranteed-safe answer; flagged here so
+  it isn't silently re-decided differently later.
+- The unofficial-data-source review risk noted below is still real and
+  unresolved either way — it can only be judged at actual review time, and
+  hasn't come up as a rejection reason yet as of this writing.
 
 ## 9. Cost summary
 
@@ -149,21 +169,17 @@ Separate from the engineering above — mostly one-time admin work:
 | RevenueCat | Free up to $2.5k/month tracked revenue |
 | Email sending | $0 (not needed — Sign in with Apple only) |
 
-## 10. Suggested build order
+## 10. Build order followed — all done
 
-1. **Database + schema** — stand up Postgres on Render, add the three
-   tables, no user-facing change yet.
-2. **Auth** — Sign in with Apple end to end (native prompt → token
-   verification → session issuance), gated behind a feature flag or just
-   built on a branch, since it doesn't need to ship until paired with...
-3. **Server-scoped roster** — move `saved_players` from localStorage to the
-   API, behind auth, with the 3-player free check in place (this alone
-   makes the free tier real, before payments exist).
-4. **Local-roster import** — the one-time migration flow from §7.
-5. **RevenueCat + paywall screen** — the actual upgrade path, wired to the
-   entitlement check already built in step 3.
-6. **App Store submission assets + review** — icon, screenshots, privacy
-   policy, TestFlight, submit.
+1. **Database + schema** — Postgres on Render, `server/db/migrations/001_init.sql`.
+2. **Auth** — Sign in with Apple end to end (`server/src/auth.js`).
+3. **Server-scoped roster** — `saved_players` behind auth, 3-player free
+   check in `accounts.js`'s `savePlayerForUser`.
+4. **Local-roster import** — §7.
+5. **RevenueCat + paywall screen** — §6.
+6. **App Store submission assets + review** — §8; submitted, awaiting
+   Apple's review outcome as of this writing.
 
-Each step is independently useful and testable on its own — this doesn't
-need to be one giant change landed at once.
+If you're picking this project back up: check with the user for the
+current App Store Connect review status rather than assuming — that state
+lives outside this repo and isn't discoverable from the code.
