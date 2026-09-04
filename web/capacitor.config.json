@@ -1,0 +1,13 @@
+{
+  "appId": "com.alumniwatch.app",
+  "appName": "Alumni Watch",
+  "webDir": "dist",
+  "ios": {
+    "contentInset": "automatic"
+  },
+  "plugins": {
+    "Keyboard": {
+      "resize": "native"
+    }
+  }
+}
